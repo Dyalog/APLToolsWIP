@@ -26,7 +26,7 @@
 ⍝   Command  - the case-insensitive HTTP command to issue
 ⍝              typically one of 'GET' 'POST' 'PUT' 'OPTIONS' 'DELETE' 'HEAD'
 ⍝   URL      - the URL to direct the command at
-⍝              format is:  [HTTP[S]://][user:pass@]url[:port][/page[?params]]
+⍝              format is:  [HTTP[S]://][user:pass@]url[:port][/page[?query_string]]
 ⍝   Params   - the parameters to pass with the command
 ⍝              this can either be a URLEncoded character vector, or a namespace containing the named parameters
 ⍝   Headers  - any additional HTTP headers to send with the request (all the obvious headers like 'content-length' are precomputed)
@@ -164,7 +164,7 @@
     ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;status;httpver;httpstatus;httpstatusmsg;rc;dyalog;FileSep;donetime;congaCopied;peercert;formContentType;ind
 ⍝ issue an HTTP command
 ⍝ certs - optional [X509Cert [SSLValidation [Priority]]]
-⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/page]
+⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/page[?query_string]]
 ⍝         {2} parameters is using POST - either a namespace or URL-encoded string
 ⍝         {3} HTTP headers in form {↑}(('hdr1' 'val1')('hdr2' 'val2'))
 ⍝ Makes secure connection if left arg provided or URL begins with https:
@@ -338,7 +338,7 @@
               :If secure ⋄ peercert←⊂LDRC.GetProp cmd'PeerCert' ⋄ :EndIf
           :EndIf
      
-          r.(rc httpver httpstatus httpstatusmsg headers data peercert)←(1⊃rc)httpver(toNum httpstatus)httpstatusmsg header data peercert
+          r.(rc HttpVer HttpStatus HttpStatusMsg Headers Data PeerCert)←(1⊃rc)httpver(toNum httpstatus)httpstatusmsg header data peercert
      
       :Else
           ⎕←'Connection failed ',,⍕rc
