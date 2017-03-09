@@ -1,10 +1,16 @@
-﻿:Namespace KeyPress ⍝ V1.00
-⍝ 2017 03 02 MBaas: Initial code
+﻿:Namespace KeyPress ⍝ V1.01
+⍝ 2017 03 02 MBaas: Initial code for KP as UCMD
+⍝ 2017 03 09 MBaas: Runs in classic, using 4 digits for hex-codes in non-classic, easy BCol-Fiddling
+
+    BCol_Form←188 188 188      ⍝ background of the form
+    BCol_Label←166 166 166     ⍝ labels for the various fields
+    BCol_Result←208 208 208    ⍝ interpreted elements of the message
+    BCol_RawMsg←127 255 255    ⍝ the event message     
+    
 
     ⎕IO←1 ⋄ ⎕ML←1
     NOTWIN←'Windows'≢7↑1⊃'.'⎕WG'aplversion'
     classic←82=⎕DR'' ⍝ Classic Version?
-
     ∇ r←List
       :If NOTWIN
           r←⍬
@@ -42,7 +48,7 @@
      
       Q←('Coord' 'Pixel')('Event'('KeyPress' 'Close')1)
       Q,←('MinButton' 0)('MaxButton' 0)('Sizeable' 0)
-      'MSG'⎕WC'Form' 'KeyPress Event',Q  ⍝⍎ MSG←
+      'MSG'⎕WC'Form' 'KeyPress Event',Q,⊂'BCol'BCol_Form   ⍝⍎ MSG←
      
      
 ⍝ ----- Query System and APL fonts ------------------------------------
@@ -57,12 +63,12 @@
      
       H←C[1]⌈Z[1]                        ⍝ Larger height (×1.5 for border)
       W←C[2]                             ⍝ Width of one APL character
-      VP←H×¯1.5+2×⍳8                     ⍝ Vertical positions
+      VP←H×¯1.5+2×⍳7                     ⍝ Vertical positions
      
 ⍝ ----- Resize form ---------------------------------------------------
      
       C←1⊃'.'⎕WG'DevCaps'                ⍝ Screen size in pixels
-      Z←(8⊃VP)(2⊃C)                      ⍝ For now, unnecessarily wide
+      Z←(7⊃VP)(2⊃C)                      ⍝ For now, unnecessarily wide
       'MSG'⎕WS('Font' 'MSG.SYS')('Size'Z)
      
 ⍝ ----- Create column 1: left-hand labels -----------------------------
@@ -71,13 +77,13 @@
       VZ←H×1.5                           ⍝ Vertical size
       HZ←⍬                               ⍝ Horizontal size
      
-      Q←'Size'VZ HZ
-      'MSG.L1'⎕WC'Label' '[1] Object:'('Posn'(1⊃VP)HP)Q
-      'MSG.L2'⎕WC'Label' '[2] Event:'('Posn'(2⊃VP)HP)Q
-      'MSG.L3'⎕WC'Label' '[3] Input Code:'('Posn'(3⊃VP)HP)Q
-      'MSG.L4'⎕WC'Label' '[4] Char Code:'('Posn'(4⊃VP)HP)Q
-      'MSG.L5'⎕WC'Label' '[5] Key Number:'('Posn'(5⊃VP)HP)Q
-      'MSG.L6'⎕WC'Label' '[6] Shift State:'('Posn'(6⊃VP)HP)Q
+      Q←('Size'(VZ HZ))('BCol'BCol_Label)
+      'MSG.L1'⎕WC'Label' '[1] Object:'('Posn'(1⊃VP)HP),Q
+      'MSG.L2'⎕WC'Label' '[2] Event:'('Posn'(2⊃VP)HP),Q
+      'MSG.L3'⎕WC'Label' '[3] Input Code:'('Posn'(3⊃VP)HP),Q
+      'MSG.L4'⎕WC'Label' '[4] Char Code:'('Posn'(4⊃VP)HP),Q
+      'MSG.L5'⎕WC'Label' '[5] Key Number:'('Posn'(5⊃VP)HP),Q
+      'MSG.L6'⎕WC'Label' '[6] Shift State:'('Posn'(6⊃VP)HP),Q
      
       X←'Label'⎕WN'MSG'                  ⍝ Names of all child labels
       X←2⊃¨¨X ⎕WG¨⊂'Posn' 'Size'         ⍝ Horizontal posn and size of each
@@ -88,17 +94,18 @@
       HP←X                               ⍝ Horiz positions (column 2)
       Q←'"KeyPress"' 'Ctrl+Shift+Enter'
       HZ←W×2+(↑∘⍴∘,)¨Q
-      Q←('Font' 'MSG.APL')('Border' 1)
+      Q←('Font' 'MSG.APL')('Border' 0)('BCol'BCol_RawMsg)
       JR←⊂'Justify' 'Right'
       'MSG.K1'⎕WC'Label'('Posn'((1⊃VP)HP))('Size'(VZ,1⊃HZ)),Q
       'MSG.K2'⎕WC'Label'('Posn'((2⊃VP)HP))('Size'(VZ,1⊃HZ)),Q
       'MSG.K3'⎕WC'Label'('Posn'((3⊃VP)HP))('Size'(VZ,1⊃HZ)),Q
-      'MSG.K4'⎕WC'Label'('Posn'((4⊃VP)HP))('Size'(VZ,1⊃HZ)),Q,JR
-      'MSG.K5'⎕WC'Label'('Posn'((5⊃VP)HP))('Size'(VZ,1⊃HZ)),Q,JR
-      'MSG.K6'⎕WC'Label'('Posn'((6⊃VP)HP))('Size'(VZ,1⊃HZ)),Q,JR
+      'MSG.K4'⎕WC'Label'('Posn'((4⊃VP)HP))('Size'(VZ,1⊃HZ)),Q
+      'MSG.K5'⎕WC'Label'('Posn'((5⊃VP)HP))('Size'(VZ,1⊃HZ)),Q
+      'MSG.K6'⎕WC'Label'('Posn'((6⊃VP)HP))('Size'(VZ,1⊃HZ)),Q
+      Q←(¯1↓Q),⊂'BCol'BCol_Result
      
 ⍝ ----- Explain input code --------------------------------------------
-      E←('Caption' '≡')('Font' 'MSG.APL')('Size'VZ(W×1.5))('Visible'classic)
+      E←('Caption' '≡')('Font' 'MSG.APL')('Size'VZ(W×1.5))('BCol'BCol_Label)
       :If classic
           P←(3⊃VP),HP+(2⊃HZ)+W×0.5
           'MSG.Y1'⎕WC'Label'('Posn'P),E
@@ -110,17 +117,17 @@
 ⍝ ----- Create more ASCII stuff ---------------------------------------
      
       P←(4⊃VP),HP+(1⊃HZ)+W×0.5
-      X←'Size'VZ ⍬
-      'MSG.D1'⎕WC'Label' 'decimal'('Posn'P)X
+      X←('Size'VZ ⍬)('BCol'BCol_Label)
+      'MSG.D1'⎕WC'Label' 'decimal'('Posn'P),X
       Z←'MSG.D1'⎕WG'Size'
       P[2]+←Z[2]
-      'MSG.D3'⎕WC'Label'('Posn'P)
+      'MSG.D3'⎕WC'Label'('Posn'P),E,⊂'BCol'BCol_Label
       Z←'MSG.D3'⎕WG'Size'
       P[2]+←Z[2]
-      P[2]←2⊃'MSG.K8'⎕wg'Posn'
-      'MSG.K7'⎕WC'Label'('Posn'P)('Size'(VZ,2⊃HZ)),Q
-      P[2]+←(2⊃HZ)+W×0.5
-      'MSG.D2'⎕WC'Label' 'hex'('Posn'P)X
+      :If classic ⋄ P[2]←2⊃'MSG.K8'⎕WG'Posn' ⋄ :EndIf
+      'MSG.K7'⎕WC'Label'('Posn'P)('Size'(VZ,0.5×2⊃HZ)),Q
+      P[2]+←(0.5×2⊃HZ)+W×0.5
+      'MSG.D2'⎕WC'Label' 'hex'('Posn'P),X
      
 ⍝ ----- Create shift state buttons ------------------------------------
      
@@ -128,7 +135,7 @@
       'MSG.B0'⎕WC'Label'('Posn'P),E
       Z←'MSG.B0'⎕WG'Size'
       P[2]+←Z[2]+W×1.25
-      Q←('Style' 'Check')('ReadOnly' 1)X('Event' 'Select' ¯1)
+      Q←('Style' 'Check')('ReadOnly' 1)('Event' 'Select' ¯1),X
       'MSG.B1'⎕WC'Button' 'Shift'('Posn'P),Q
       Z←'MSG.B1'⎕WG'Size'
       P[2]+←Z[2]+W×1.5
@@ -142,25 +149,9 @@
       X←(⎕WN'MSG')~'MSG.APL' 'MSG.SYS'  ⍝ Names of all children except fonts
       X←2⊃¨¨X ⎕WG¨⊂'Posn' 'Size'    ⍝ Horizontal posn and size of each
       X←W+⌈/+/¨X                    ⍝ Largest Posn+Size, plus right-hand pad
-      P←⌈0.30000000000000004 0.9×C-(8⊃VP),X
+      P←⌈0.30000000000000004 0.9×C-(7⊃VP),X
       'MSG'⎕WS('Size'⍬ X)('Posn'P)  ⍝ Fix overall width and position
      
-⍝ ----- Create right-justified Close button ---------------------------
-      :If 0 ⍝ disabled - will be removed if no reviewer disagrees (Window has a close-button automatically ;-))
-          'MSG.BC'⎕WC'Button' 'Close'   ⍝ Create prototype button
-          Z←(2×W)+2⊃'MSG.BC'⎕WG'Size'   ⍝ How wide is it, add padding
-          P←(7⊃VP)(X-Z+W)               ⍝ Position to right-justify
-          'MSG.BC'⎕WC'Button' 'Close'('Posn'P)('Size'VZ Z)('Event' 'Select' 1)
-     
-          Q←'Must click Close button to exit...'
-          'MSG.LC'⎕WC'Label'Q('Posn'(7⊃VP)W)('Size'VZ ⍬)
-          Q←'MSG.LC'⎕WG'Size'
-          'MSG.LC'⎕WS'Posn'⍬(P[2]-Q[2])
-     
-⍝ ----- Place mouse on Close button -----------------------------------
-     
-          ⎕NQ'MSG.BC' 'MouseMove',(VZ Z×0.6000000000000001 0.85),1 0
-      :EndIf
 ⍝ ----- Trace keystrokes until Close ----------------------------------
      
       H←⎕D,6⍴⎕A                         ⍝ Hex digits
@@ -183,7 +174,7 @@
                   'MSG.K8'⎕WS'Caption'(' ',kl)
               :EndIf
               'MSG.K4'⎕WS'Caption'(⍕char)
-              'MSG.K7'⎕WS'Caption'(' ',H[1+16 16⊤char])
+              'MSG.K7'⎕WS'Caption'(' ',H[1+((4-2×classic)⍴16)⊤char])
               'MSG.K5'⎕WS'Caption'(⍕key)
               'MSG.K6'⎕WS'Caption'(' ',⍕shift)
               Z ⎕WS¨(⊂⊂'State'),¨2 2 2⊤shift
