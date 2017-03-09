@@ -1,42 +1,69 @@
 ﻿:Class HttpCommand
 ⍝ Description::
-⍝ HttpCommand is a stand alone utility to issue HTTP commands and return their results.
-⍝ HttpCommand can be used to retrieve the contents of web pages, issue calls to web services,
-⍝ and communicate with any service which uses the HTTP protocol for communications.
+⍝ HttpCommand is a stand alone utility to issue HTTP commands and return their
+⍝ results.  HttpCommand can be used to retrieve the contents of web pages,
+⍝ issue calls to web services, and communicate with any service which uses the
+⍝ HTTP protocol for communications.
 ⍝
 ⍝ N.B. requires Conga - the TCP/IP utility library
 ⍝
 ⍝ Overview::
 ⍝ HttpCommand can be used in two ways:
-⍝   1) Using ⎕NEW - this allows you to specify the command's parameters without having to
-⍝                   cram them into a single function or constructor invocation.
-⍝        h←⎕NEW HttpCommand                            ⍝ create a new instance
-⍝        h.(Command URL)←'get' 'www.dyalog.com'        ⍝ set the command parameters
-⍝        r←h.Run                                       ⍝ run the command
+⍝   1) Create an instance of HttpCommand using ⎕NEW
+⍝      This gives you very fine control to specify the command's parameters
+⍝      You then use the Run method to execute the request
 ⍝
-⍝   2) Using the shared "Get" or "Do" shortcut methods
+⍝        h←⎕NEW HttpCommand                       ⍝ create an instance
+⍝        h.(Command URL)←'get' 'www.dyalog.com'   ⍝ set the command parameters
+⍝        r←h.Run                                  ⍝ run the request
+⍝
+⍝   2) Alternatively you can use the "Get" or "Do" methods which make it
+⍝      easier to execute some of the more common use cases.
 ⍝        r←HttpCommand.Get 'www.dyalog.com'
 ⍝        r←HttpCommand.Do 'get' 'www.dyalog.com'
 ⍝
 ⍝ Constructor::
-⍝   cmd←⎕NEW HttpCommand [(Command [URL [Params [Headers [Cert [SSLFlags [Priority]]]]]])]
+⍝        cmd←⎕NEW HttpCommand [(Command [URL [Params [Headers [Cert [SSLFlags [Priority]]]]]])]
 ⍝
 ⍝ Constructor Arguments::
 ⍝ All of the constructor arguments are also exposed as Public Fields
+⍝
 ⍝   Command  - the case-insensitive HTTP command to issue
 ⍝              typically one of 'GET' 'POST' 'PUT' 'OPTIONS' 'DELETE' 'HEAD'
+⍝
 ⍝   URL      - the URL to direct the command at
 ⍝              format is:  [HTTP[S]://][user:pass@]url[:port][/page[?query_string]]
+⍝
 ⍝   Params   - the parameters to pass with the command
-⍝              this can either be a URLEncoded character vector, or a namespace containing the named parameters
-⍝   Headers  - any additional HTTP headers to send with the request (all the obvious headers like 'content-length' are precomputed)
-⍝              a vector of 2-element (header-name value) vectors or a matrix of [;1] header-name [;2] values
+⍝              this can either be a URLEncoded character vector, or a namespace
+⍝              containing the named parameters
+⍝
+⍝   Headers  - a vector of 2-element (header-name value) vectors
+⍝              or a matrix of [;1] header-name [;2] values
+⍝
+⍝              these are any additional HTTP headers to send with the request
+⍝              or headers whose default values you wish to override
+⍝              headers that HttpCommand will set by default are:
+⍝               User-Agent     : Dyalog/Conga
+⍝               Accept         : */*
+⍝               Content-Type   : application/x-www-form-urlencoded
+⍝               Content-Length : length of the request body
+⍝               Accept-Encoding: gzip, deflate
+⍝
 ⍝   Cert     - if using a SSL, this is an instance of the X509Cert class (see Conga SSL documentation)
+⍝
 ⍝   SSLFlags - if using SSL, these are the SSL flags as described in the Conga documentation
+⍝
 ⍝   Priority - if using SSL, this is the GNU TLS priority string (generally you won't change this from the default)
 ⍝
+⍝ Notes on Params and query_string:
+⍝ When using the 'GET' HTTP command, you may specify parameters using either the query_string or Params
+⍝ Hence, the following are equivalent
+⍝     HttpCommand.Get 'www.someplace.com?userid=fred'
+⍝     HttpComment.Get 'www.someplace.com' ('userid' 'fred')
+⍝
 ⍝ Additional Public Fields::
-⍝   LocalDRC - if set, this is a reference to the DRC namespace from Conga - otherwise, we look for DRC in the workspace root\
+⍝   LocalDRC - if set, this is a reference to the DRC namespace from Conga - otherwise, we look for DRC in the workspace root
 ⍝   WaitTime - time (in seconds) to wait for the response (default 30)
 ⍝
 ⍝
@@ -52,7 +79,7 @@
 ⍝ Public Instance Methods::
 ⍝
 ⍝   result←Run            - executes the HTTP request
-⍝   name AddHeader value  - add a header value the request headers if it doesn't already exist
+⍝   name AddHeader value  - add a header value to the request headers if it doesn't already exist
 ⍝
 ⍝ Public Shared Methods::
 ⍝
@@ -349,7 +376,7 @@
      
       :If congaCopied
           {}LDRC.Close'.'
-          LDRC.(⎕EX¨⍙naedfns)
+          {0:: ⋄ LDRC.(⎕EX¨⍙naedfns)}'' ⍝ Conga 3.0 cleans up ⍙naedfns
       :EndIf
     ∇
 
@@ -369,16 +396,15 @@
     firstCaps←{1↓{(¯1↓0,'-'=⍵) (819⌶)¨ ⍵}'-',⍵}
     addHeader←{'∘???∘'≡⍺⍺ GetHeader ⍺:⍺⍺⍪⍺ ⍵ ⋄ ⍺⍺} ⍝ add a header unless it's already defined
 
+    ∇ r←a GetHeader w
+      r←a{(⍺[;2],⊂'∘???∘')⊃⍨(lc¨⍺[;1])⍳eis lc ⍵}w
+    ∇
+
     ∇ name AddHeader value
     ⍝ add a header unless it's already defined
       :Access public
       Headers←makeHeaders Headers
       Headers←name(Headers addHeader)value
-    ∇
-
-    ∇ r←a GetHeader w
-      :Access public shared
-      r←a{(⍺[;2],⊂'∘???∘')⊃⍨(lc¨⍺[;1])⍳eis lc ⍵}w
     ∇
 
     ∇ r←{a}eis w;f
@@ -402,7 +428,7 @@
     ∇
 
     ∇ r←Base64Decode w
-    ⍝ Base64 Encode
+    ⍝ Base64 Decode
       :Access public shared
       r←{
           ⎕IO←0
@@ -476,31 +502,51 @@
       :EndIf
     ∇
 
-    ∇ r←Documentation;sections;box;⎕IO;CR
+    :Section Test Scripts
+
+    ∇ TestHttpCommand;host;report;params
       :Access public shared
+      report←{(50↑⍺),(': Failed' ': Passed'[1+⍵])}
+      host←'https://jsonplaceholder.typicode.com/'
+      'RESTful GET all posts' report 0 200∧.=(Get host,'posts').(rc HttpStatus)
+      (params←⎕NS'').(title body userId)←'foo' 'bar' 1
+      'RESTful POST' report 0 201∧.=(Do 'post' (host,'posts') params).(rc HttpStatus)
+      (params←⎕NS'').(title body userId id)←'foo' 'bar' 1 200
+      'RESTful PUT' report 0 201∧.=⎕←(Do 'put' (host,'posts/1') params).(rc HttpStatus)
+    ∇
+
+
+    :EndSection
+
+    :Section Documentation Utilities
+    ⍝ these are generic utilities used for documentation
+
+    ∇ docn←ExtractDocumentationSections describeOnly;⎕IO;box;CR;sections
+    ⍝ internal utility function
       ⎕IO←1
       CR←⎕UCS 13
       box←{{⍵{⎕AV[(1,⍵,1)/223 226 222],CR,⎕AV[231],⍺,⎕AV[231],CR,⎕AV[(1,⍵,1)/224 226 221]}⍴⍵}(⍵~CR),' '}
-      r←1↓⎕SRC ⎕THIS
-      r←1↓¨r/⍨∧\'⍝'=⊃¨r ⍝ keep all contiguous comments
-      r←r/⍨'⍝'≠⊃¨r     ⍝ remove any lines beginning with ⍝⍝
-      sections←{∨/'::'⍷⍵}¨r
-      (sections/r)←box¨sections/r
-      r←∊r,¨CR
+      docn←1↓⎕SRC ⎕THIS
+      docn←1↓¨docn/⍨∧\'⍝'=⊃¨r ⍝ keep all contiguous comments
+      docn←docn/⍨'⍝'≠⊃¨docn     ⍝ remove any lines beginning with ⍝⍝
+      sections←{∨/'::'⍷⍵}¨docn
+      :If describeOnly
+          (sections docn)←((2>+\sections)∘/¨sections docn)
+      :EndIf
+      (sections/docn)←box¨sections/docn
+      docn←∊docn,¨CR
     ∇
 
-    ∇ r←Describe;sections;box;⎕IO;CR
+    ∇ r←Documentation
+    ⍝ return full documentation
       :Access public shared
-      ⎕IO←1
-      CR←⎕UCS 13
-      box←{{⍵{⎕AV[(1,⍵,1)/223 226 222],CR,⎕AV[231],⍺,⎕AV[231],CR,⎕AV[(1,⍵,1)/224 226 221]}⍴⍵}(⍵~CR),' '}
-      r←1↓⎕SRC ⎕THIS
-      r←1↓¨r/⍨∧\'⍝'=⊃¨r ⍝ keep all contiguous comments
-      r←r/⍨'⍝'≠⊃¨r     ⍝ remove any lines beginning with ⍝⍝
-      sections←{∨/'::'⍷⍵}¨r
-      (sections r)←((2>+\sections)∘/¨sections r)
-      (sections/r)←box¨sections/r
-      r←∊r,¨CR
+      r←ExtractDocumentationSections 0
     ∇
 
+    ∇ r←Describe
+    ⍝ return description only
+      :Access public shared
+      r←ExtractDocumentationSections 1
+    ∇
+    :EndSection
 :EndClass
