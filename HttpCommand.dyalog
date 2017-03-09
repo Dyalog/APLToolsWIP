@@ -188,7 +188,7 @@
     ∇
 
 
-    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;status;httpver;httpstatus;httpstatusmsg;rc;dyalog;FileSep;donetime;congaCopied;peercert;formContentType;ind
+    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;rc;dyalog;FileSep;donetime;congaCopied;formContentType;ind;len
 ⍝ issue an HTTP command
 ⍝ certs - optional [X509Cert [SSLValidation [Priority]]]
 ⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/page[?query_string]]
@@ -198,7 +198,7 @@
      
 ⍝ Result: (conga return code) (HTTP Status) (HTTP headers) (HTTP body) [PeerCert if secure]
       r←⎕NS''
-      (rc httpver httpstatus httpstatusmsg header data peercert)←¯1 '' 400(⊂'bad request')(0 2⍴⊂'')''⍬
+      r.(rc HttpVer HttpStatus HttpStatusMsg Headers Data PeerCert)←¯1 '' 400(⊂'bad request')(0 2⍴⊂'')''⍬
      
       args←eis args
       (url parms hdrs)←args,(⍴args)↓''(⎕NS'')''
@@ -270,8 +270,8 @@
       hdrs←'User-Agent'(hdrs addHeader)'Dyalog/Conga'
       hdrs←'Accept'(hdrs addHeader)'*/*'
      
-      :If ~0∊⍴parms          ⍝ if we have any parameters
-          :If cmd≡'POST'     ⍝ and a POST command
+      :If ~0∊⍴parms         ⍝ if we have any parameters
+          :If cmd≢'GET'     ⍝ and not a GET command
               ⍝↓↓↓ specify the default content type (if not already specified)
               hdrs←'Content-Type'(hdrs addHeader)formContentType←'application/x-www-form-urlencoded'
               :If formContentType≡hdrs GetHeader'Content-Type'
@@ -283,7 +283,7 @@
      
       hdrs←'Accept-Encoding'(hdrs addHeader)'gzip, deflate'
      
-      req←(uc cmd),' ',(page,urlparms),' HTTP/1.1',NL,'Host: ',host,NL
+      req←cmd,' ',(page,urlparms),' HTTP/1.1',NL,'Host: ',host,NL
       req,←fmtHeaders hdrs
       req,←auth
      
@@ -359,13 +359,14 @@
      
               :EndTrap
      
-              httpver httpstatus httpstatusmsg←{⎕ML←3 ⋄ ⍵⊂⍨{⍵∨2<+\~⍵}⍵≠' '}(⊂1 1)⊃header
+              r.(HttpVer HttpStatus HttpStatusMsg)←{⎕ML←3 ⋄ ⍵⊂⍨{⍵∨2<+\~⍵}⍵≠' '}(⊂1 1)⊃header
+              r.HttpStatus←toNum r.HttpStatus
               header↓⍨←1
      
-              :If secure ⋄ peercert←⊂LDRC.GetProp cmd'PeerCert' ⋄ :EndIf
+              :If secure ⋄ r.PeerCert←⊂LDRC.GetProp cmd'PeerCert' ⋄ :EndIf
           :EndIf
      
-          r.(rc HttpVer HttpStatus HttpStatusMsg Headers Data PeerCert)←(1⊃rc)httpver(toNum httpstatus)httpstatusmsg header data peercert
+          r.(rc Headers Data)←(1⊃rc)header data
      
       :Else
           ⎕←'Connection failed ',,⍕rc
@@ -508,11 +509,11 @@
       :Access public shared
       report←{(50↑⍺),(': Failed' ': Passed'[1+⍵])}
       host←'https://jsonplaceholder.typicode.com/'
-      'RESTful GET all posts' report 0 200∧.=(Get host,'posts').(rc HttpStatus)
+      'RESTful GET all posts'report 0 200∧.=(Get host,'posts').(rc HttpStatus)
       (params←⎕NS'').(title body userId)←'foo' 'bar' 1
-      'RESTful POST' report 0 201∧.=(Do 'post' (host,'posts') params).(rc HttpStatus)
+      'RESTful POST'report 0 201∧.=(Do'post'(host,'posts')params).(rc HttpStatus)
       (params←⎕NS'').(title body userId id)←'foo' 'bar' 1 200
-      'RESTful PUT' report 0 201∧.=⎕←(Do 'put' (host,'posts/1') params).(rc HttpStatus)
+      'RESTful PUT'report 0 200∧.=(Do'put'(host,'posts/1')params).(rc HttpStatus)
     ∇
 
 
