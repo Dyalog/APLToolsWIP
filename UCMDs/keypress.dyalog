@@ -1,16 +1,18 @@
-﻿:Namespace KeyPress ⍝ V1.01
+﻿:Namespace KeyPress ⍝ V1.02
 ⍝ 2017 03 02 MBaas: Initial code for KP as UCMD
 ⍝ 2017 03 09 MBaas: Runs in classic, using 4 digits for hex-codes in non-classic, easy BCol-Fiddling
+⍝ 2017 03 10 MBaas: Adjustments to positioning, colour and fonts
 
     BCol_Form←188 188 188      ⍝ background of the form
     BCol_Label←166 166 166     ⍝ labels for the various fields
     BCol_Result←208 208 208    ⍝ interpreted elements of the message
-    BCol_RawMsg←127 255 255    ⍝ the event message     
+    BCol_RawMsg←208 208 208    ⍝ the event message    (original col was 127 255 255) 
     
 
     ⎕IO←1 ⋄ ⎕ML←1
     NOTWIN←'Windows'≢7↑1⊃'.'⎕WG'aplversion'
     classic←82=⎕DR'' ⍝ Classic Version?
+    enlist←{⎕ml←1 ⋄∊⍵}
     ∇ r←List
       :If NOTWIN
           r←⍬
@@ -36,7 +38,7 @@
       :EndIf
     ∇
 
-    ∇ R←Run(Cmd Input);C;E;H;HP;HZ;MSG;P;Q;VP;VZ;W;X;Z;JR;⎕IO;⎕ML;object;event;input;char;key;shift;kl
+    ∇ R←Run(Cmd Input);C;E;H;HP;HZ;MSG;P;Q;VP;VZ;W;X;Z;JR;⎕IO;⎕ML;object;event;input;char;key;shift;kl;sz
 ⍝ 03 Apr 1995  Rex Swain, Independent Consultant, Tel (+1) 203-868-0131
 ⍝ 15 Aug 1995  Simplify and improve handling of System and APL fonts
       ⎕IO←1
@@ -53,17 +55,17 @@
      
 ⍝ ----- Query System and APL fonts ------------------------------------
      
-      'MSG.SYS'⎕WC'Font' 'MS Sans Serif' 13 ⍝ Create copy of font as object
+      'MSG.SYS'⎕WC'Font' 'MS Sans Serif' 13 0 0 0 800 ⍝ Create copy of font as object
      
-      Q←'⎕SE'⎕WG'Font'                   ⍝ Want session/APL font for Labels
-      'MSG.APL'⎕WC(⊂'Font'),Q            ⍝ Create copy of font as object
+      Q←'⎕SE'⎕WG'Font'                     ⍝ Want session/APL font for Labels
+      'MSG.APL'⎕WC(⊂'Font'),Q              ⍝ Create copy of font as object
      
       Z←'MSG'⎕WG⊂'TextSize' 'Z' 'MSG.SYS'  ⍝ Size of one char in System font
       C←'MSG'⎕WG⊂'TextSize' '⎕' 'MSG.APL'  ⍝ Size of one char in APL font
      
-      H←C[1]⌈Z[1]                        ⍝ Larger height (×1.5 for border)
-      W←C[2]                             ⍝ Width of one APL character
-      VP←H×¯1.5+2×⍳7                     ⍝ Vertical positions
+      H←C[1]⌈Z[1]                          ⍝ Larger height (×1.5 for border)
+      W←C[2]                               ⍝ Width of one APL character
+      VP←H×¯1.5+2×⍳7                       ⍝ Vertical positions
      
 ⍝ ----- Resize form ---------------------------------------------------
      
@@ -86,13 +88,15 @@
       'MSG.L6'⎕WC'Label' '[6] Shift State:'('Posn'(6⊃VP)HP),Q
      
       X←'Label'⎕WN'MSG'                  ⍝ Names of all child labels
-      X←2⊃¨¨X ⎕WG¨⊂'Posn' 'Size'         ⍝ Horizontal posn and size of each
-      X←⌈/+/¨X                           ⍝ Largest Posn+Size
+      sz←2⊃¨¨X ⎕WG¨⊂'Posn' 'Size'         ⍝ Horizontal posn and size of each
+      X ⎕WS¨⊂'Size'⍬(⌈/2⊃¨sz)
+      sz←⌈/+/¨sz                           ⍝ Largest Posn+Size
+     
      
 ⍝ ----- Create column 2: APL "edit" boxes -----------------------------
      
-      HP←X                               ⍝ Horiz positions (column 2)
-      Q←'"KeyPress"' 'Ctrl+Shift+Enter'
+      HP←sz                               ⍝ Horiz positions (column 2)
+      Q←' KeyPress' ' Ctrl+Shift+Enter'
       HZ←W×2+(↑∘⍴∘,)¨Q
       Q←('Font' 'MSG.APL')('Border' 0)('BCol'BCol_RawMsg)
       JR←⊂'Justify' 'Right'
@@ -107,7 +111,7 @@
 ⍝ ----- Explain input code --------------------------------------------
       E←('Caption' '≡')('Font' 'MSG.APL')('Size'VZ(W×1.5))('BCol'BCol_Label)
       :If classic
-          P←(3⊃VP),HP+(2⊃HZ)+W×0.5
+          P←(3⊃VP),HP+1⊃HZ⍝+W×0.5
           'MSG.Y1'⎕WC'Label'('Posn'P),E
           Z←'MSG.Y1'⎕WG'Size'
           P[2]+←Z[2]
@@ -124,26 +128,27 @@
       'MSG.D3'⎕WC'Label'('Posn'P),E,⊂'BCol'BCol_Label
       Z←'MSG.D3'⎕WG'Size'
       P[2]+←Z[2]
-      :If classic ⋄ P[2]←2⊃'MSG.K8'⎕WG'Posn' ⋄ :EndIf
       'MSG.K7'⎕WC'Label'('Posn'P)('Size'(VZ,0.5×2⊃HZ)),Q
-      P[2]+←(0.5×2⊃HZ)+W×0.5
+      P[2]+←(0.5×2⊃HZ)
       'MSG.D2'⎕WC'Label' 'hex'('Posn'P),X
      
 ⍝ ----- Create shift state buttons ------------------------------------
      
-      P←(6⊃VP),HP+(1⊃HZ)+W×1.5
+      P←(6⊃VP),HP+(1⊃HZ)
       'MSG.B0'⎕WC'Label'('Posn'P),E
       Z←'MSG.B0'⎕WG'Size'
-      P[2]+←Z[2]+W×1.25
-      Q←('Style' 'Check')('ReadOnly' 1)('Event' 'Select' ¯1),X
-      'MSG.B1'⎕WC'Button' 'Shift'('Posn'P),Q
-      Z←'MSG.B1'⎕WG'Size'
-      P[2]+←Z[2]+W×1.5
-      'MSG.B2'⎕WC'Button' 'Ctrl'('Posn'P),Q
-      Z←'MSG.B2'⎕WG'Size'
-      P[2]+←Z[2]+W×1.5
-      'MSG.B3'⎕WC'Button' 'Alt'('Posn'P),Q
-     
+      P[2]+←Z[2]
+      'MSG.KS'⎕WC'Label'('Posn'P)('Size'(VZ,2⊃HZ))('BCol'BCol_Result)
+      :If 0
+          Q←('Style' 'Check')('ReadOnly' 1)('Event' 'Select' ¯1),X
+          'MSG.B1'⎕WC'Button' 'Shift'('Posn'P),Q
+          Z←'MSG.B1'⎕WG'Size'
+          P[2]+←Z[2]+W×1.5
+          'MSG.B2'⎕WC'Button' 'Ctrl'('Posn'P),Q
+          Z←'MSG.B2'⎕WG'Size'
+          P[2]+←Z[2]+W×1.5
+          'MSG.B3'⎕WC'Button' 'Alt'('Posn'P),Q
+      :EndIf
 ⍝ ----- Resize width of form ------------------------------------------
      
       X←(⎕WN'MSG')~'MSG.APL' 'MSG.SYS'  ⍝ Names of all children except fonts
@@ -158,37 +163,32 @@
       Z←⌽'MSG.B1' 'MSG.B2' 'MSG.B3'     ⍝ Shift state buttons
       :Repeat ⍝ Wait for an event
           X←⎕DQ'MSG'                      ⍝ Wait for event
-          :Select 1
-          :Case X[1]∊Z                      ⍝ Shift state buttons?
-     ⍝ --> Don't let buttons get focus
-              (1⊃X)⎕WS'State' 0
-              ⎕NQ'MSG' 'GotFocus'
-          :Case ~X[2]∊'Select' 'Close'        ⍝ Close (button or SysMenu)?
-     
+          :If X[2]≢⊂'Close'     
               object event input char key shift←X
               kl←⎕KL input
-              'MSG.K1'⎕WS'Caption'(object)
-              'MSG.K2'⎕WS'Caption'(event)
-              'MSG.K3'⎕WS'Caption'(input)
+              'MSG.K1'⎕WS'Caption'(' ',object)
+              'MSG.K2'⎕WS'Caption'(' ',event)
+              'MSG.K3'⎕WS'Caption'(' ',input)
               :If classic
                   'MSG.K8'⎕WS'Caption'(' ',kl)
               :EndIf
-              'MSG.K4'⎕WS'Caption'(⍕char)
+              'MSG.K4'⎕WS'Caption'(' ',⍕char)
               'MSG.K7'⎕WS'Caption'(' ',H[1+((4-2×classic)⍴16)⊤char])
-              'MSG.K5'⎕WS'Caption'(⍕key)
+              'MSG.K5'⎕WS'Caption'(' ',⍕key)
               'MSG.K6'⎕WS'Caption'(' ',⍕shift)
-              Z ⎕WS¨(⊂⊂'State'),¨2 2 2⊤shift
+              ⍝Z ⎕WS¨(⊂⊂'State'),¨2 2 2⊤shift
+              'MSG.KS'⎕WS'caption'(ShiftS←¯1↓' ',enlist((2 2 2⊤shift)/'Alt' 'Ctrl' 'Shift'),¨'+')
               :If ##.RIU
                   R,←input(classic/kl)char key(2 2 2⊤shift)
               :Else
               ⍝
                   r←'Input Code: ',(3↑⍕input),(classic/,'[',kl,']'),', Char: ',⍕char
                   r,←', Key Number: ',(⍕key)
-                  r,←', Shift state: ',1 0⍕2 2 2⊤shift
+                  r,←', Shift state: ',(⍕shift),'=',ShiftS ⍝ 1 0⍕2 2 2⊤shift
                   ⎕←r
               :EndIf
-          :EndSelect
-      :Until X[2]∊⊂'Close' ⍝ loop forever
+          :EndIf
+      :Until X[2]≡⊂'Close' ⍝ loop forever
       :If ~##.RIU ⋄ R←'' ⋄ :EndIf
     ∇
 :EndNamespace
