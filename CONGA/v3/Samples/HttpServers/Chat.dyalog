@@ -1,11 +1,8 @@
 ﻿:Class ChatServer : HttpServerBase
-    ⍝ Implement a web-socket based
-    :Require HttpServerBase
+    ⍝ Implement a web-socket based chat server
 
     :field Public shared clients←⍬
-
-    INDEXHTML←'c:\tmp\UM2016\index.html' ⍝ /// This needs to be fixed
-
+    
     NL←⎕UCS 13 10
     fromJSON←7159⌶
     toJSON←7160⌶
@@ -18,6 +15,12 @@
     ∇ MakeN arg
       :Access Public
       :Implements Constructor :Base arg
+
+      DYALOG←'/',⍨2 ⎕NQ '.' 'GetEnvironment' 'Dyalog'
+      INDEXHTML←DYALOG,'apllib/conga/HttpServers/chat.html' 
+      :If ~⎕NEXISTS INDEXHTML
+          'Index page "',INDEXHTML,'" not found' ⎕SIGNAL 2
+      :EndIf
     ∇
 
     ∇ Unmake
@@ -31,11 +34,8 @@
       headers←0 2⍴⍬
       headers⍪←'Server' 'ClassyDyalog'
       headers⍪←'Content-Type' 'text/html'
-      hdr←(-⍴NL)↓⊃,/{⍺,': ',⍵,NL}/headers
+      hdr←(-⍴NL)↓⊃,/{⍺,': ',⍵,NL}/headers 
       e←SendFile 0 hdr INDEXHTML
-      :If 1039=⊃e
-          SendAnswer'404 Not Found'hdr''
-      :EndIf
     ∇
 
     ⍝ If WSFeatures is set to 1 you get a notification when the connection is upgraded

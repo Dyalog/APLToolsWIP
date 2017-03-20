@@ -2,7 +2,7 @@
  (path rootname)←(enc arg)defaults'' 'DRC'
  :If 0=⊃LoadSharedLib path
      :If ⍬≡ref←FindInst rootname
-         ref←⎕NEW DRC(⎕THIS path rootname)
+         ref←⎕NEW DRC(⎕THIS PATH rootname)
      :EndIf
  :Else
      'Unable to load sharedlib'⎕SIGNAL 999

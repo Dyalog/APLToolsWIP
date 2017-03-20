@@ -1,0 +1,15 @@
+DyalogBuild: 0.1
+ID         : CONGADEV, Version=3.0
+Description: Conga development workspace for Dyalog v16.0
+Defaults   : ⎕IO←⎕ML←1
+TARGET     : congadev.dws
+
+EXEC  : #.⎕EX 'Tests' 'Certificates' 'HttpServices' 'RPCServices'
+
+RUN   : CONGA
+NS    : Tests/*.dyalog, Target=Tests
+NS    : v2/HTTPUtils/*.dyalog, Target=HTTPUtils
+NS    : v3/Samples/Certificates/*.dyalog, Target=Certificates
+NS    : v3/Samples/HttpServers/HttpServerBase.dyalog, Target=HttpServers
+NS    : v3/Samples/HttpServers/*.dyalog, Target=HttpServers
+NS    : v3/Samples/RPCServices/*.dyalog, Target=RPCServices

@@ -13,7 +13,7 @@
 
           Assert←{
               ⍺=⊃⍵:⍵
-              'Server error'⎕SIGNAL 999
+              ('Server error: ',⍕⍵)⎕SIGNAL 999
           }
 
         ∇ ref←GetDRCShared

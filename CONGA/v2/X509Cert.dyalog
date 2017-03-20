@@ -2,11 +2,11 @@
 
     :Field Public Shared LDRC          ⍝ Save a ref to DRC to be used from X509Cert
     :Field Private Instance _Cert←''       ⍝ Raw certificate
-    :field private Instance _Key←''        ⍝ Raw certificate private key
+    :Field private Instance _Key←''        ⍝ Raw certificate private key
     :Field Private Instance _usemsstoreapi ⍝ Use GNU unless this is set to 1
     :Field Private Instance _CertOrigin←'' ⍝ Where did this certificate come from
-    :Field Private instance _KeyOrigin←''  ⍝ Where did the  private part come from
-    :Field Private instance _ParentCert←'' ⍝ Parent certificate or ''
+    :Field Private Instance _KeyOrigin←''  ⍝ Where did the  private part come from
+    :Field Private Instance _ParentCert←'' ⍝ Parent certificate or ''
 
     tochar←{80=⎕DR 'A':⎕UCS ⍵ ⋄ ⎕AV[⎕IO+⍵]}
 
@@ -178,8 +178,8 @@
      
       ⎕IO←1
      
-      trustroot←LDRC.X509Cert.ReadCertFromStore'root'
-      trustca←LDRC.X509Cert.ReadCertFromStore'CA'
+      trustroot←DRC.X509Cert.ReadCertFromStore'root'
+      trustca←DRC.X509Cert.ReadCertFromStore'CA'
       current←⎕THIS
      
       :Repeat
@@ -246,10 +246,10 @@
       _Key←''
       _usemsstoreapi←0
       _CertOrigin←_KeyOrigin←('DER' '')
-     
+      SetLDRC
     ∇
 
-    ∇ Make2(DRCref cert)
+    ∇ Make1 cert
       :Access Public
       :Implements Constructor
      
@@ -257,10 +257,10 @@
       Cert←cert
       _usemsstoreapi←0
       _CertOrigin←_Key←_KeyOrigin←''
-      LDRC←DRCref
+      LDRC←FindDRC''
     ∇
 
-    ∇ Make3(DRCref cert origin)
+    ∇ Make2(cert origin)
       :Access Public
       :Implements Constructor
       Cert←cert
@@ -269,18 +269,28 @@
       :If 'MSStore'≡1⊃origin
           _KeyOrigin←origin
       :EndIf
-      LDRC←DRCref
+      LDRC←FindDRC''
     ∇
 
-    ∇ Make4(DRCref cert certorigin keyorigin)
+    ∇ Make3(cert certorigin keyorigin)
       :Access Public
       :Implements Constructor
       Cert←cert
       _usemsstoreapi←0
       _CertOrigin←certorigin
       _KeyOrigin←keyorigin
-      DRC←DRCref
-     
+      LDRC←FindDRC''
+    ∇
+
+
+    ∇ ldrc←FindDRC dummy
+      :If 0=⎕NC'LDRC' ⍝ Find DRC namespace
+          :If 9=⎕NC'#.DRC'
+              ldrc←#.DRC
+          :ElseIf 9=⎕NC'#.Conga'
+              ldrc←#.Conga.Init''
+          :EndIf
+      :EndIf
     ∇
 
     ∇ r←base Decode code;ix;bits;size;s
@@ -294,36 +304,32 @@
       r←(8⍴2)⊥⍉s⍴(×/s)↑bits
       r←(-0=¯1↑r)↓r
     ∇
-    ∇ certs←ReadCertUrls;certurls;list;DRC
+    ∇ certs←ReadCertUrls;certurls;list
       :Access Public shared
-      DRC←##.Init''
-      certurls←DRC.Certs'Urls' ''
+      certurls←LDRC.Certs'Urls' ''
       :If 0=1⊃certurls
       :AndIf 0<1⊃⍴2⊃certurls
-          certs←{⎕NEW X509Cert(DRC(4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
+          certs←{⎕NEW X509Cert((4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
       :Else
           certs←⍬
       :EndIf
     ∇
 
-    ∇ certs←ReadCertFromStore storename;cs;DRC
+    ∇ certs←ReadCertFromStore storename;cs
       :Access  public shared
-      DRC←##.Init''
      
-      cs←DRC.Certs'MSStore'storename
+      cs←LDRC.Certs'MSStore'storename
       :If 0=1⊃cs
       :AndIf 0<⍴2⊃cs
-          certs←⎕NEW¨(2⊃cs){X509Cert(DRC ⍺ ⍵)}¨⊂'MSStore'storename
+          certs←⎕NEW¨(2⊃cs){X509Cert(⍺ ⍵)}¨⊂'MSStore'storename
       :Else
           certs←⍬
       :EndIf
     ∇
 
-    ∇ certs←ReadCertFromFolder wildcardfilename;files;f;filelist;DRC
+    ∇ certs←ReadCertFromFolder wildcardfilename;files;f;filelist
       :Access public shared
-      DRC←##.Init''
-     
-      filelist←1 DRC.Files.List wildcardfilename
+      filelist←1 LDRC.Files.List wildcardfilename
       files←filelist[;1]
       certs←⍬
       :For f :In files
@@ -331,10 +337,8 @@
       :EndFor
     ∇
 
-    ∇ certs←ReadCertFromFile filename;c;base64;tie;size;cert;ixs;ix;d;pc;temp;DRC
+    ∇ certs←ReadCertFromFile filename;c;base64;tie;size;cert;ixs;ix;d;pc;temp
       :Access public shared
-      DRC←##.Init''
-     
       certs←⍬
       c←'-----BEGIN X509 CERTIFICATE-----' '-----BEGIN CERTIFICATE-----'
       base64←'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -349,7 +353,7 @@
               d←(d∊base64)/d
                   ⍝d←tochar base64 Decode d
               d←base64 Decode d
-              certs,←⎕NEW X509Cert(DRC d('DER'filename))
+              certs,←⎕NEW X509Cert(d('DER'filename))
      
                   ⍝c.Origin←'DER' filename
                   ⍝certs,←c
@@ -357,12 +361,12 @@
       :Else
           cert←⎕NREAD tie 83 size 0
              ⍝ cert←⎕AV[⎕IO+256|cert+256]
-          certs,←⎕NEW X509Cert(DRC cert('DER'filename))
+          certs,←⎕NEW X509Cert(cert('DER'filename))
               ⍝c.Origin←'DER' filename
               ⍝certs,←c
       :EndIf
       ⎕NUNTIE tie
-      certs←##.SetParents certs
+      certs←LDRC.SetParents certs
     ∇
 
 :EndClass
