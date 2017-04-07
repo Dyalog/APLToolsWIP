@@ -26,4 +26,4 @@ COPY  : v3/Samples/Certificates/*, Target=distribution/apllib/conga/Certificates
 COPY  : v3/Samples/HttpServers/*, Target=distribution/apllib/conga/HttpServers
 COPY  : v3/Samples/RPCServices/*, Target=distribution/apllib/conga/RPCServices
 
-LX    : ⎕←'This is the pre-v3.0 compatibility version of the Conga workspace.'
+LX    : ⎕←'This is the Conga v3.0 workspace.'

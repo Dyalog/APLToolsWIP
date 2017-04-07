@@ -3,7 +3,6 @@
     :field Public Name
     :field Public extra
 
-
     ∇ ct←ServerArgs
       :Access Public shared
         ⍝ return the type of connection you want
@@ -54,16 +53,18 @@
     ∇
 
     ∇ onReceive(obj data)
-          ⍝:Access public
-      :Access public overridable
+      :Access Public Overridable
       Respond obj(⌽data)
     ∇
 
     ∇ onError(obj data)
-          ⍝:Access public
-      :Access public overridable
-      ⎕←'Oh no ',obj,' has failed with error ',⍕data
+      :Access Public Overridable
+      ⍝ ⎕←'Oh no ',obj,' has failed with error ',⍕data
     ∇
-
-
+    
+    ∇ onClose(obj data)
+      :Access Public Overridable
+      ⎕←'Closed: ',⍕obj
+    ∇
+    
 :EndClass

@@ -65,13 +65,13 @@
     ∇
 
 
-    ∇ MakeN arg;rootname;z
+    ∇ MakeN arg;rootname;z;s
       :Access public
       :Implements Constructor
      
       (DS Path RootName)←3↑arg
       :If 3=DS.⎕NC'⍙InitRPC'
-          z←DS.⍙InitRPC RootName Path
+          z←DS.⍙InitRPC RootName Path 
           :Select ⊃z
           :Case 1091
               :If 80≠⎕DR' '
@@ -82,6 +82,8 @@
           :Else
               (DS.Error z)⎕SIGNAL 999
           :EndSelect
+          
+          ⍝ SetProp '.' 'EventMode' 1 
       :EndIf
      
     ∇

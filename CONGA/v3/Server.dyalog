@@ -78,14 +78,13 @@
 
         ∇ onTimeout
           :Access public
-          :Access Overridable
-         
+          :Access Overridable         
         ∇
         
 
         ∇ Handler name;r;newcon;err;obj;evt;data
           ⍎name,'←⎕ns '''' '
-          :While !done
+          :While ~done
               :If 0=⊃r←DRC.Wait name timeout
                   (err obj evt data)←4↑r
                   :Select evt

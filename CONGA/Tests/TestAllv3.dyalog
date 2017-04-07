@@ -62,6 +62,126 @@
     ∇
 
 
+    ∇ cp←CertPath;instpath
+      instpath←2 ⎕NQ'.' 'GetEnvironment' 'DYALOG'
+      cp←instpath,'/TestCertificates/'
+    ∇
+
+    ∇ cert←ReadCert relfilename;fn
+     
+      fn←CertPath,relfilename
+      cert←⊃#.DRCShared.X509Cert.ReadCertFromFile fn,'-cert.pem'
+      cert.KeyOrigin←'DER' (fn,'-key.pem')
+    ∇
+
+    ∇ r←name DisplayCert z;dc;nc
+⍝ Display information about a certificate
+      dc←{,[1.5](2⊃⍵)[1 2 3 4 5 6]}
+      nc←,[1.5]name'Version' 'SerialNo' 'Subject' 'Issuer' 'ValidFrom' 'ValidTo'
+      dc←{⍵.(Formatted.(Version SerialNo Subject Issuer),Elements.(ValidFrom ValidTo))}
+      :If 0=1⊃z
+      :AndIf 0<⊃⍴2⊃z
+          r←nc,' '⍪⍉↑dc¨2⊃z
+      :Else ⋄ r←('Unable to retrieve ',name)z
+      :EndIf
+    ∇
+
+    ∇ r←TestSimple(prot secure);srvx509;cltx509;Port;c;Host;srv;clt;DefaultWaitTime;rs;con;srvcert;cltcert;pa;la
+      r←1
+      Port←5000
+      Host←'localhost'
+      srv←'S1'
+      clt←'C1'
+      DefaultWaitTime←5000
+      Cert←{(⍺.Cert)⍺⍺ ⍵.Cert}
+        
+      r∧←0 Assert⊃c←#.DRC.SetProp'.' 'EventMode' 0
+      :If secure
+          srvx509←ReadCert'server/localhost'
+          cltx509←ReadCert'client/client'
+          r∧←0 Assert⊃c←#.DRC.SetProp'.' 'RootCertDir'(CertPath,'ca')
+      :else
+         srvx509←cltx509←⍬
+      :EndIf
+      r∧←0 srv Assert c←#.DRC.Srv srv''Port,((prot≢'')/⊂('Protocol'prot)),secure/('X509'srvx509)('SSLValidation'(64))
+      r∧←0 clt Assert c←#.DRC.Clt clt Host Port,((prot≢'')/⊂('Protocol'prot)),secure/('x509'cltx509)('SSLValidation'(0))
+     
+      r∧←0 Assert⊃c←#.DRC.Send clt'Request1'
+     
+      r∧←0 'Connect' 0 Assert(⊂1 3 4)⌷rs←#.DRC.Wait srv DefaultWaitTime
+      con←2⊃rs
+      :If secure
+          Log'Server Certificate'DisplayCert srvcert←#.DRC.GetProp clt'PeerCert'
+          Log'Client Certificate'DisplayCert cltcert←#.DRC.GetProp con'PeerCert'
+          r∧←(2 1⊃srvcert)Assert Cert 2 1⊃#.DRC.GetProp con'OwnCert'
+          r∧←(2 1⊃cltcert)Assert Cert 2 1⊃#.DRC.GetProp clt'OwnCert'
+      :EndIf
+     
+      r∧←0 'Receive' 'Request1'Assert(⊂1 3 4)⌷rs←#.DRC.Wait srv DefaultWaitTime
+     
+      r∧←0 Assert⊃c←#.DRC.Respond(2⊃rs)(⌽4⊃rs)
+     
+      r∧←0 'Receive'(⌽'Request1')Assert(⊂1 3 4)⌷rs←#.DRC.Wait clt DefaultWaitTime
+     
+      r∧←0 Assert⊃pa←#.DRC.GetProp clt'PeerAddr'
+      r∧←0 Assert⊃la←#.DRC.GetProp con'LocalAddr'
+      r∧←(2 2⊃la)Assert 2 2⊃pa
+     
+     
+      r∧←0 Assert⊃la←#.DRC.GetProp clt'LocalAddr'
+      r∧←0 Assert⊃pa←#.DRC.GetProp con'PeerAddr'
+     
+      r∧←(2 2⊃la)Assert 2 2⊃pa
+     
+     
+      r∧←0 Assert⊃c←#.DRC.Close clt
+     
+      r∧←0 'Error' 1119 Assert(⊂1 3 4)⌷rs←#.DRC.Wait srv DefaultWaitTime
+     
+      r∧←(,⊂srv) Assert #.DRC.Names'.'
+     
+     
+      r∧←0 Assert⊃c←#.DRC.Close srv
+     
+    ∇
+
+
+    ∇ r←TestRaw;port;data;size;rs;c1;type;mode;c
+      port←5000
+      to83←{⍵-256×⍵>127}
+      r←1
+      :For mode :In 'Raw' 'Blkraw'
+          r∧←0 'S1'Assert c←#.DRC.Srv'S1' ''port mode(40+2*21)
+          r∧←0 'C1'Assert c←#.DRC.Clt'C1' 'localhost'port mode(40+2*21)
+          r∧←0 'Connect' 0 Assert(⊂1 3 4)⌷c1←#.DRC.Wait'S1' 5000
+          :For type :In 83 163
+              :For size :In ,(2*1+⍳20)∘.+¯1 0 1
+                  data←(-⎕IO)+size⍴⍳256
+     
+                  r∧←0 Assert 1⊃c←#.DRC.Send'C1'(type{⍺=83:to83 ⍵ ⋄ ⍵}data)
+                  rs←0
+                  :While (rs<size)
+                      :If 0 'Block'≡(⊂1 3)⌷c1←#.DRC.Wait'S1' 10000
+                          r∧←(4⊃c1){⍺≡(⍴⍺)⍴⍵}rs{((⍴⍵)|⍺)⌽⍵}data
+                          rs+←⍴4⊃c1
+                      :Else
+                          r←0
+                          :Leave
+                      :EndIf
+                  :EndWhile
+                  Log size r
+              :EndFor
+          :EndFor
+          r∧←0 Assert⊃c←#.DRC.Close'C1'
+          :If mode≡'Raw'
+              r∧←0 'BlockLast'Assert(⊂1 3)⌷c1←#.DRC.Wait'S1' 5000
+          :EndIf
+          r∧←0 Assert⊃c←#.DRC.Close'S1'
+      :EndFor
+      Report r
+     
+    ∇
+
     ∇ r←TestSendFile;c1;size;rs;port;data
       port←5000
       data←'dette er en test '
@@ -386,17 +506,17 @@
       :EndIf
     ∇
 
-    ∇ r←m Client name;cmds;r;c
+    ∇ {r}←m Client name;cmds;r;c
       r←0
       :If 0=1⊃r←#.DRC.Clt name'localhost' 5000
           cmds←(⊂name,'.'),¨'X',¨8{(-⍺)↑(⍺⍴'0'),⍕⍵}¨⍳m
           :If ∧/0≡¨r←CmdWait¨cmds
-              Log'Client'c
+              Log'Client'name
           :EndIf
           c←#.DRC.Close name
       :Else
           r←0
-          Log'Client ',name,' Failed to connect',c
+          Log'Client ',name,' Failed to connect'
       :EndIf
       res,←0=⊃r
     ∇
@@ -425,7 +545,7 @@
       Report r
     ∇
 
-    ∇ r←TestReadyList2 arg;n;m;ready;show;cons;ts;tc;tlist
+    ∇ r←TestReadyList2 arg;n;m;ready;cons;ts;tc;tlist
       n m ready show←arg,(⍴arg)↓2 4 1 0
       {}#.DRC.Close¨#.DRC.Names'.'
       res←⍬
@@ -444,7 +564,7 @@
       ⎕TSYNC tc
       r∧←0 Assert⊃c←#.DRC.Close'S1'
       ⎕TSYNC ts
-     
+⍝test
       :If ~r∧←∧/res
           res
       :EndIf
@@ -958,10 +1078,10 @@
                       r∧←0 'WSReceive'((to83 data)1 2)Assert c[1 3 4]
                   :EndFor
               :EndFor
-     :For drt :In 80 160 320
+              :For drt :In 80 160 320
                   :For len :In 0 10 124 125 126 127 128 65535 65536 70000
-                      data←drt utf8 len ⍝ 
-                      Fin←  len=70000
+                      data←drt utf8 len ⍝
+                      Fin←len=70000
                       r∧←0 Assert⊃c←#.DRC.Send'C1'(data Fin)
      
                       c←#.DRC.Wait'S1' 1000
@@ -976,8 +1096,8 @@
               :For offset :In -⎕IO+0 128
                   :For len :In 0 10 124 125 126 127 128 65535 65536 70000
                       data←offset+len⍴⍳256
-                     Fin←  len=70000
-                       r∧←0 Assert⊃c←#.DRC.Send'C1'(data Fin)
+                      Fin←len=70000
+                      r∧←0 Assert⊃c←#.DRC.Send'C1'(data Fin)
      
                       c←#.DRC.Wait'S1' 1000
                       r∧←0 'WSReceive'((to83 data)Fin 2)Assert c[1 3 4]
@@ -988,38 +1108,38 @@
                       r∧←0 'WSReceive'((to83 data)Fin 2)Assert c[1 3 4]
                   :EndFor
               :EndFor
-              ⍝ test wrong type       
-              data←80 utf8 1000 ⍝ 
+              ⍝ test wrong type
+              data←80 utf8 1000 ⍝
               r∧←0 Assert⊃c←#.DRC.Send'C1'(data 0)
-                   
+     
               c←#.DRC.Wait'S1' 1000
               r∧←0 'WSReceive'(data 0 1)Assert c[1 3 4]
-            
-              data←(-128+⎕io)+1000⍴⍳256
+     
+              data←(-128+⎕IO)+1000⍴⍳256
               r∧←1004 Assert⊃c←#.DRC.Send'C1'(data 1)
-            
-              data←80 utf8 1000 ⍝ 
+     
+              data←80 utf8 1000 ⍝
               r∧←0 Assert⊃c←#.DRC.Send'C1'(data 1)
-                   
+     
               c←#.DRC.Wait'S1' 1000
               r∧←0 'WSReceive'(data 1 1)Assert c[1 3 4]
-              
+     
               ⍝ test wrong type
-              data←(-128+⎕io)+1000⍴⍳256
+              data←(-128+⎕IO)+1000⍴⍳256
               r∧←0 Assert⊃c←#.DRC.Send'C1'(data 0)
-                   
+     
               c←#.DRC.Wait'S1' 1000
               r∧←0 'WSReceive'(data 0 2)Assert c[1 3 4]
-            
-              data←80 utf8 1000 ⍝ 
+     
+              data←80 utf8 1000 ⍝
               r∧←1004 Assert⊃c←#.DRC.Send'C1'(data 1)
-            
-              data←(-128+⎕io)+1000⍴⍳256
+     
+              data←(-128+⎕IO)+1000⍴⍳256
               r∧←0 Assert⊃c←#.DRC.Send'C1'(data 1)
-                   
+     
               c←#.DRC.Wait'S1' 1000
               r∧←0 'WSReceive'(data 1 2)Assert c[1 3 4]
-            
+     
      
               r∧←0 Assert⊃c←#.DRC.Close'C1'
               c←#.DRC.Wait'S1' 10000
@@ -1069,7 +1189,17 @@
       r∧←TestProtocol
      
       c←#.DRC.Close¨#.DRC.Names'.'
+      r∧←TestRaw
+     
+      c←#.DRC.Close¨#.DRC.Names'.'
+      r∧←TestWebSocket
+     
+      c←#.DRC.Close¨#.DRC.Names'.'
+      r∧←TestReadyList2 4 8 1 0
+     
+      c←#.DRC.Close¨#.DRC.Names'.'
       r∧←TestProgress
+     
      
       :If 0<⍴Errors
           Errors
