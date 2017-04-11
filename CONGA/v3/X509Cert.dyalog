@@ -60,8 +60,6 @@
               :If 0<_ParentCert.IsCert
                   r←_ParentCert
               :EndIf
-         
-         
           :EndTrap
         ∇
         ∇ Set args
@@ -79,7 +77,6 @@
          
         ∇
     :EndProperty
-
 
     PropertyNames←'Version' 'SerialNo' 'AlgorithmID' 'AlgorithmParams' 'Issuer' 'ValidFrom' 'ValidTo' 'Subject' 'KeyID' 'KeyParams' 'KeyLength' 'Key' 'IssuerID' 'SubjectID' 'Extensions'
     PropertyIndices←1 2 (3 1)(3 2)4 (5 1)(5 2)6 (7 1)(7 2)(7 3)(7 4) 8 9 10
@@ -147,7 +144,7 @@
      
           path←fixpath path
      
-          :Select ##.##.lcase ext
+          :Select 0(819⌶) ext
           :CaseList 'cer' 'pem'
               filename←path,name,'.',ext
               data←⊃,/('X509 CERTIFICATE'{pre←{'-----',⍺,' ',⍵,'-----'} ⋄ (⊂'BEGIN'pre ⍺),⍵,⊂'END'pre ⍺}↓64{s←(⌈(⍴⍵)÷⍺),⍺ ⋄ s⍴(×/s)↑⍵}base64 Cert),¨⊂⎕UCS 10 13
@@ -178,8 +175,8 @@
      
       ⎕IO←1
      
-      trustroot←LDRC.X509Cert.ReadCertFromStore'root'
-      trustca←LDRC.X509Cert.ReadCertFromStore'CA'
+      trustroot←ReadCertFromStore'root'
+      trustca←ReadCertFromStore'CA'
       current←⎕THIS
      
       :Repeat
@@ -293,7 +290,8 @@
      
       r←(8⍴2)⊥⍉s⍴(×/s)↑bits
       r←(-0=¯1↑r)↓r
-    ∇
+    ∇                  
+
     ∇ certs←ReadCertUrls;certurls;list;DRC
       :Access Public shared
       DRC←##.Init''
