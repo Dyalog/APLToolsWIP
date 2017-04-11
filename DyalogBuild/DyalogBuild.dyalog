@@ -5,12 +5,30 @@
 
     ⎕ML←⎕IO←1
 
+    eis←{1=≡⍵:⊂⍵ ⋄ ⍵}                        ⍝ enclose if simple
     split←{{(+/∧\⍵∊' ')↓⍵}¨1↓¨{(⍵=⊃⍵)⊂⍵}⍺,⍵} ⍝ Split ⍵ on ⍺, and remove leading blanks from each segment
-    getparam←{⍺←'' ⋄ (⌊/names⍳⊆⍵)⊃values,⊂⍺} ⍝ Get value of parameter
+    getparam←{⍺←'' ⋄ (⌊/names⍳eis ⍵)⊃values,⊂⍺} ⍝ Get value of parameter
     getnumparam←{⍺←⊣ ⋄⊃2⊃⎕VFI ⍺ getparam ⍵}  ⍝ Get numeric parameter (0 if not set)
     lc←0∘(819⌶) ⋄ uc←1∘(819⌶)                ⍝ lower & upper case
 
   ⍝ test "DSL" functions
+
+    ∇ r←QCSV args;z;file;encoding;coltypes;num
+    ⍝ Primitive ⎕CSV for pre-v16
+    ⍝ No validation, no options
+
+     :Trap 2 ⍝ Syntax Error
+        r←⎕CSV args
+     :Else
+        (file encoding coltypes)←args
+        z←1⊃⎕NGET file 1
+        z←1↓¨↑{(','=⍵)⊂⍵}¨',',¨z
+        :If 0≠⍴num←(2=coltypes)/⍳⍴coltypes
+           z[;num]←{⊃2⊃⎕VFI ⍵}¨z[;num]
+        :EndIf
+        r←z
+     :EndTrap
+    ∇
 
     ∇ r←expect check got
       :If r←expect≢got                               
@@ -228,7 +246,7 @@
                       logerror'Not a free variable name: ',target,', current name class = ',⍕tmp ⋄ :Continue
                   :EndIf
                   :Trap 999
-                      tmp←⎕CSV(path,source)'',(0≠≢types)/⊂types
+                      tmp←QCSV (path,source)'',(0≠≢types)/⊂types
                       ⍎target,'←tmp'
                       log target,' defined from CSV file "',source,'"'
                   :Else
@@ -250,7 +268,7 @@
               :If 0=≢z     ⍝ no names
                   logerror'Nothing found: ',tmp
               :ElseIf 1=≢z ⍝ exactly one name
-                  log(uc@1)cmd,' ',source,' loaded as ',⍕z
+                  log {(uc 1↑⍵),1↓⍵}cmd,' ',source,' loaded as ',⍕z
               :Else        ⍝ many names
                   log(⍕≢z),' names loaded from ',source,' into ',target
               :EndIf
