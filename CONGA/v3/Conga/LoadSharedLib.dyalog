@@ -37,7 +37,7 @@
      :If 3=⎕NC'⍙InitRPC'
          r←0('Conga loaded from: ',LibPath,filename)
      :Else
-         z←⎕EX¨⍙naedfns
+         :If 0≠≢⍙naedfns ⋄ z←⎕EX¨⍙naedfns ⋄ :EndIf
          r←1000('Unable to find DLL "',filename,'"')('Tried: ',,⍕LibPath)
      :EndIf
  :EndIf
