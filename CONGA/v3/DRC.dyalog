@@ -5,6 +5,7 @@
     :Field Public RootName
 
       check←{
+          1006=⊃⍵:'Root not found - please re-initialise' ⎕SIGNAL 999
           0≠⊃⍵:('DLL Error: ',,⍕⍵)⎕SIGNAL 999
           0≠⊃2⊃⍵:(##.Conga.Error⊃2⊃⍵),1↓2⊃⍵
           2=⍴⍵:(⎕IO+1)⊃⍵
@@ -104,7 +105,9 @@
 
     ∇ UnMake
       :Implements Destructor
+      :Trap 0
       _←Close'.'
+      :EndTrap
     ∇
 
     ∇ m←Magic arg
@@ -168,6 +171,7 @@
     ∇ r←Close con;_
       :Access Public
      ⍝ arg:  Connection id
+      
       r←check ##.Conga.⍙CallR RootName'AClose'con 0
  ⍝     :If ((,'.')≡,con)∧(0<⎕NC'⍙naedfns')  ⍝ Close root and unload share lib
  ⍝         _←⎕EX¨⍙naedfns
