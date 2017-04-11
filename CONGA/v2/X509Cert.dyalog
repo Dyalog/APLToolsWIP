@@ -1,6 +1,6 @@
 ﻿:Class X509Cert
 
-    :Field Public Shared LDRC          ⍝ Save a ref to DRC to be used from X509Cert
+    :Field Public Shared LDRC←''           ⍝ Save a ref to DRC to be used from X509Cert
     :Field Private Instance _Cert←''       ⍝ Raw certificate
     :Field private Instance _Key←''        ⍝ Raw certificate private key
     :Field Private Instance _usemsstoreapi ⍝ Use GNU unless this is set to 1
@@ -170,7 +170,6 @@
       :EndTrap
     ∇
 
-
     ∇ {r}←CopyCertificationChainFromStore;trustroot;trustca;rix;iix;⎕IO;foundroot;current
       :Access Public
           ⍝ Follow certificate chain from "⎕this" until a root certificate is found,
@@ -198,7 +197,6 @@
       :Until foundroot
       r←⍴Chain
     ∇
-
 
     ∇ chain←Chain;pc
       :Access Public
@@ -235,8 +233,7 @@
           r←(0=⊃z←LDRC.Certs'Decode'_Cert)
           DecodeOK←r
       :EndIf
-      r+←(r=1)∧(_KeyOrigin≢'')∨_Key≢''
-     
+      r+←(r=1)∧(_KeyOrigin≢'')∨_Key≢''     
     ∇
 
     ∇ Make0
@@ -282,14 +279,16 @@
       LDRC←FindDRC''
     ∇
 
-
-    ∇ ldrc←FindDRC dummy
-      :If 0=⎕NC'LDRC' ⍝ Find DRC namespace
-          :If 9=⎕NC'#.DRC'
+    ∇ ldrc←FindDRC dummy                 
+    ⍝ Establish a pointer to a Conga instance or a v2 DRC namspace
+      :If ''≡LDRC            ⍝ Pointer not set
+          :If 9=⎕NC'#.DRC'   ⍝ Look for v2 DRC namespace
               ldrc←#.DRC
-          :ElseIf 9=⎕NC'#.Conga'
+          :ElseIf 9=⎕NC'#.Conga' ⍝ Else use Conga factory function
               ldrc←#.Conga.Init''
           :EndIf
+      :Else ⍝ If set return it
+          ldrc←LDRC
       :EndIf
     ∇
 
@@ -303,9 +302,10 @@
      
       r←(8⍴2)⊥⍉s⍴(×/s)↑bits
       r←(-0=¯1↑r)↓r
-    ∇
+    ∇                                 
+
     ∇ certs←ReadCertUrls;certurls;list
-      :Access Public shared
+      :Access Public Shared
       certurls←LDRC.Certs'Urls' ''
       :If 0=1⊃certurls
       :AndIf 0<1⊃⍴2⊃certurls
@@ -316,7 +316,7 @@
     ∇
 
     ∇ certs←ReadCertFromStore storename;cs
-      :Access  public shared
+      :Access Public Shared
      
       cs←LDRC.Certs'MSStore'storename
       :If 0=1⊃cs
@@ -328,7 +328,7 @@
     ∇
 
     ∇ certs←ReadCertFromFolder wildcardfilename;files;f;filelist
-      :Access public shared
+      :Access Public Shared
       filelist←1 LDRC.Files.List wildcardfilename
       files←filelist[;1]
       certs←⍬
@@ -338,7 +338,7 @@
     ∇
 
     ∇ certs←ReadCertFromFile filename;c;base64;tie;size;cert;ixs;ix;d;pc;temp
-      :Access public shared
+      :Access Public Shared
       certs←⍬
       c←'-----BEGIN X509 CERTIFICATE-----' '-----BEGIN CERTIFICATE-----'
       base64←'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'

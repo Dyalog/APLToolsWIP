@@ -1,5 +1,5 @@
 ﻿ r←{reset}Init path;dllname;z;Path;ZSetHeader;unicode;bit64;filename;Paths;win;s;dirsep;mac;rootarg
-     ⍝ Initialize Conga v3.0.0
+ ⍝ Initialize Conga v3.0.0 (v2.x compatibility mode)
 
  :If 2=⎕NC'reset' ⋄ :AndIf 2=⎕NC'⍙naedfns' ⋄ :AndIf reset=¯1    ⍝ Reload the dll
      {}Close'.'
@@ -19,13 +19,7 @@
      ⍝ Dllname is Conga[x64 if 64-bit][Uni if Unicode][.so if UNIX]
      filename←'conga30',(⊃'__CU'[⎕IO+unicode]),(⊃('32' '64')[⎕IO+bit64]),⊃('' '.so' '.dylib')[⎕IO+mac+~win]
      dirsep←'/\'[⎕IO+win]
-     :If win
-             ⍝ if path is empty windows finds the .dll next to the .exe
-         Path←DefPath path
-     :Else
-          ⍝ if unix/linux rely on the setting of LIBPATH/LD_LIBRARY_PATH
-         Path←''
-     :EndIf
+     Path←DefPath path
      s←''
 
      :Trap 0
@@ -39,7 +33,7 @@
          :Trap 0
              ⍙naedfns,←⊂'⍙Version'⎕NA dllname,'Version'
          :Else
-             ⎕FX'r←⍙Version' 'r←20700000'
+             ⎕FX'r←⍙Version' 'r←30000000'
          :EndTrap
 
          ⍙naedfns,←⊂'⍙CallR'⎕NA dllname,'Call& <0T1 <0T1 =Z <U',⍕4×1+bit64  ⍝ No left arg
@@ -79,8 +73,7 @@
 
          :If 0=⊃r
              r←0('Conga loaded from: ',Path,filename,s)
-             X509Cert.LDRC←⎕THIS            ⍝ Set LDRC so X509Cert can find DRC
-             flate.LDRC←⎕THIS
+             X509Cert.LDRC←⎕THIS      ⍝ Set LDRC so X509Cert can find DRC
          :Else
              z←⎕EX¨⍙naedfns
          :EndIf

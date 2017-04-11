@@ -1,6 +1,7 @@
-﻿ r←arg getargix(args list);mn;mp;ixs;nix
-      ⍝ Finds argumenst in a list of positional and named arguments
+﻿ r←arg getargix(args list);mn;mp;ixs;nix;ncase
+⍝ Finds argumenst in a list of positional and named arguments
 
+ ncase←{(0(819⌶)⍺)⍺⍺(0(819⌶)⍵)} ⍝ case-insensitive operator
  ixs←list⍳ncase args
 
  nix←+/∧\2>|≡¨arg ⍝ identify where the named arguments starts

@@ -1,16 +1,17 @@
 ﻿:Class DRC
-    :Field Public DS
-    :field public Path
-    :field public RootName  
+⍝ NB instances are always created as siblings of the Conga namespace
+
+    :Field Public LibPath
+    :Field Public RootName
 
       check←{
           0≠⊃⍵:('DLL Error: ',,⍕⍵)⎕SIGNAL 999
-          0≠⊃2⊃⍵:(DS.Error⊃2⊃⍵),1↓2⊃⍵
+          0≠⊃2⊃⍵:(##.Conga.Error⊃2⊃⍵),1↓2⊃⍵
           2=⍴⍵:(⎕IO+1)⊃⍵
           1↓⍵}
 
-      lcase←0∘(819⌶)                                         ⍝ Lower-casification
-      ncase ←{(1<≡⍺)∧1<≡⍵: (lcase ¨⍺) ⍺⍺ (lcase¨ ⍵) ⋄ (lcase ⍺) ⍺⍺ lcase ⍵ } 
+    lcase←0∘(819⌶)                    ⍝ Lower-casification
+    ncase ←{(lcase ⍺) ⍺⍺ lcase ⍵ }    ⍝ Case-insensitive operator
 
     ∇ r←arg getargix(args list);mn;mp;ixs;nix
       ⍝ Finds argumenst in a list of positional and named arguments
@@ -61,33 +62,45 @@
 
     ∇ r←bit2problem a      ⍝ returned by DRC.Clt in case secure connection fails with error 1202
       r←a{(((⍴⍵)/2)⊤⍺)/⍵}'' 'CERT_INVALID' '' '' 'REVOKED' 'SIGNER_NOT_FOUND' 'SIGNER_NOT_CA' 'INSECURE_ALGORITHM' 'NOT_ACTIVATED' 'CERT_EXPIRED' 'SIGNATURE_FAILURE' 'REVOCATION_DATA_SUPERSEDED' '' 'UNEXPECTED_OWNER' 'REVOCATION_DATA_ISSUED_IN_FUTURE' 'SIGNER_CONSTRAINTS_FAILURE' 'MISMATCH'
-     
     ∇
 
+    ∇ r←X509Cert
+      :Access Public Instance
+      r←##.Conga.X509Cert
+    ∇
 
     ∇ MakeN arg;rootname;z;s
       :Access public
       :Implements Constructor
      
-      (DS Path RootName)←3↑arg
-      :If 3=DS.⎕NC'⍙InitRPC'
-          z←DS.⍙InitRPC RootName Path 
+      (LibPath RootName)←2↑arg
+     
+      :If 3=##.Conga.⎕NC'⍙InitRPC'
+          z←##.Conga.⍙InitRPC RootName LibPath
           :Select ⊃z
           :Case 1091
               :If 80≠⎕DR' '
-                  s←DS.(SetXlate DefaultXlate)
+                  s←##.Conga.(SetXlate DefaultXlate)
               :EndIf
           :Case 1043
      
           :Else
-              (DS.Error z)⎕SIGNAL 999
+              (##.Conga.Error z)⎕SIGNAL 999
           :EndSelect
-          
-          ⍝ SetProp '.' 'EventMode' 1 
+     
+          ⍝ SetProp '.' 'EventMode' 1
       :EndIf
      
     ∇
 
+    ∇ vc←SetParentCerts vc;ix;m
+    ⍝ Set parent certificates
+      ix←vc.Elements.Subject⍳vc.Elements.Issuer  ⍝ find the index of the parents
+      :If ∨/m←(ix≤⍴vc)∧ix≠⍳⍴ix                   ⍝ Mask the found items with parents and not selfsigned
+          (m/vc).ParentCert←vc[m/ix]             ⍝ Set the parent
+      :EndIf                                     ⍝ NB the :If prevents creation of an empty cert to allow above line to work
+      vc←vc~vc.ParentCert                        ⍝ remove all parents from list
+    ∇
 
     ∇ UnMake
       :Implements Destructor
@@ -97,7 +110,7 @@
     ∇ m←Magic arg
       :Access public
       m←(4/256)⊥⎕UCS 4↑arg
-    ∇                    
+    ∇
 
     ∇ r←Srv a;ix;arglist;cert
       :Access public
@@ -119,16 +132,15 @@
 ⍝    "PrivateKeyData'
      
       a←reparg a
-      r←check DS.⍙CallR RootName'ASrv'a 0
+      r←check ##.Conga.⍙CallR RootName'ASrv'a 0
     ∇
 
     ∇ r←Send a;⎕IO
       :Access public
      ⍝ Name data {CloseConnection}
       ⎕IO←1
-      r←check DS.⍙CallRL RootName'ASendZ'((a,0)[1 3])(2⊃a)
+      r←check ##.Conga.⍙CallRL RootName'ASendZ'((a,0)[1 3])(2⊃a)
     ∇
-
 
     ∇ r←Clt a
       :Access public
@@ -150,13 +162,13 @@
 ⍝    "PrivateKeyData'
      
       a←reparg a
-      r←check DS.⍙CallR RootName'AClt'a 0
+      r←check ##.Conga.⍙CallR RootName'AClt'a 0
     ∇
 
     ∇ r←Close con;_
       :Access Public
      ⍝ arg:  Connection id
-      r←check DS.⍙CallR RootName'AClose'con 0
+      r←check ##.Conga.⍙CallR RootName'AClose'con 0
  ⍝     :If ((,'.')≡,con)∧(0<⎕NC'⍙naedfns')  ⍝ Close root and unload share lib
  ⍝         _←⎕EX¨⍙naedfns
  ⍝         _←⎕EX'⍙naedfns'
@@ -171,8 +183,9 @@
       ⍝ Folder not implemented
       ⍝ DER  not implemented
       ⍝ PK#12 not implemented
-      r←check DS.⍙CallR RootName'ACerts'a 0
+      r←check ##.Conga.⍙CallR RootName'ACerts'a 0
     ∇
+
     ∇ r←Names root
       :Access public
      ⍝ Return list of top level names
@@ -185,22 +198,21 @@
     ∇ r←Progress a;cmd;data;⎕IO
       :Access public
      ⍝ cmd data
-      ⎕IO←1 ⋄ r←check DS.⍙CallRL RootName'ARespondZ'(a[1],0)(2⊃a)
+      ⎕IO←1 ⋄ r←check ##.Conga.⍙CallRL RootName'ARespondZ'(a[1],0)(2⊃a)
     ∇
 
     ∇ r←Respond a;⎕IO
       :Access public
      ⍝  cmd  data
-      ⎕IO←1 ⋄ r←check DS.⍙CallRL RootName'ARespondZ'(a[1],1)(2⊃a)
+      ⎕IO←1 ⋄ r←check ##.Conga.⍙CallRL RootName'ARespondZ'(a[1],1)(2⊃a)
     ∇
-
 
     ∇ r←SetProp a
       :Access public
       ⍝ Name Prop Value
       ⍝ '.' 'CertRootDir' 'c:\certfiles\ca'
      
-      r←check DS.⍙CallR RootName'ASetProp'a 0
+      r←check ##.Conga.⍙CallR RootName'ASetProp'a 0
     ∇
 
     ∇ r←SetRelay a
@@ -208,7 +220,7 @@
       ⍝ Name Prop Value
       ⍝ 'RelayFrom' 'RelayTo' [blocksize=16384 [oneway=0]]
      
-      r←check DS.⍙CallR RootName'ASetRelay'a 0
+      r←check ##.Conga.⍙CallR RootName'ASetRelay'a 0
     ∇
 
     ∇ r←SetPropnt a
@@ -216,25 +228,25 @@
       ⍝ Name Prop Value
       ⍝ '.' 'CertRootDir' 'c:\certfiles\ca'
      
-      r←check DS.⍙CallRnt RootName'ASetProp'a 0
+      r←check ##.Conga.⍙CallRnt RootName'ASetProp'a 0
     ∇
 
     ∇ r←Tree a
       :Access public
       ⍝ Name
-      r←check DS.⍙CallR RootName'ATree'a 0
+      r←check ##.Conga.⍙CallR RootName'ATree'a 0
     ∇
 
     ∇ r←Micros
       :Access public
-      r←DS.Micros
+      r←##.Conga.Micros
     ∇
 
     ∇ v←Version;version;err
       :Access public
       :Trap 0
-          :If 0≠⎕NC'DS.⍙Version'
-              (err v)←DS.⍙Version 3
+          :If 0≠⎕NC'##.Conga.⍙Version'
+              (err v)←##.Conga.⍙Version 3
           :Else
               version←{no←(¯1+(⍵∊⎕D)⍳1)↓⍵ ⋄ 3↑⊃¨2⊃¨⎕VFI¨'.'{1↓¨(⍺=⍵)⊂⍵}'.',no}
               v←version 2 1 4⊃Tree'.'
@@ -278,12 +290,12 @@
       ⍝ Server: OwnCert  LocalAddr  PropList
       ⍝ Connection: OwnCert  PeerCert  LocalAddr  PeerAddr  PropList
      
-      r←check DS.⍙CallR RootName'AGetProp'a 0
+      r←check ##.Conga.⍙CallR RootName'AGetProp'a 0
      
       :If 0=⊃r
       :AndIf ∨/'OwnCert' 'PeerCert'∊a[2]
       :AndIf 0<⊃⍴2⊃r
-          (2⊃r)←SetParents DS.⎕NEW¨X509Cert,∘⊂¨⎕THIS,¨⊂¨2⊃r
+          (2⊃r)←SetParentCerts ##.Conga.⎕NEW¨X509Cert,∘⊂¨⎕THIS,¨⊂¨2⊃r
       :EndIf
     ∇
 
@@ -295,7 +307,7 @@
       :If (1≥≡a)∧∨/80 82∊⎕DR a
           a←(a)1000
       :EndIf
-      →(0≠⊃⊃r←check DS.⍙CallRLR RootName'AWaitZ'a 0)⍴0
+      →(0≠⊃⊃r←check ##.Conga.⍙CallRLR RootName'AWaitZ'a 0)⍴0
       ⍝:If 0=⊃⊃r ⋄ timing,←⊂(4⊃4↑⊃r),Micros ⋄ :EndIf
       r←(3↑⊃r),r[2]
       :If 0<⎕NC'⍙Stat' ⋄ Stat r ⋄ :EndIf
@@ -310,7 +322,7 @@
       :If (1≥≡a)∧∨/80 82∊⎕DR a
           a←(a)1000
       :EndIf
-      →(0≠⊃⊃r←check DS.⍙CallRLR RootName'AWaitZ'a 0)⍴0
+      →(0≠⊃⊃r←check ##.Conga.⍙CallRLR RootName'AWaitZ'a 0)⍴0
       ⍝:If 0=⊃⊃r ⋄ timing,←⊂(4⊃4↑⊃r),Micros ⋄ :EndIf
       r←(3↑⊃r),r[2],⊂(4⊃4↑⊃r),Micros
     ∇

@@ -1,0 +1,9 @@
+﻿DyalogTest : 0.1
+ID         : Conga3Basic
+Description: Basic functionality tests for Conga v3.0
+
+EXEC  : ⎕EX '#.DRC' '#.Conga'
+
+Setup : setup_v2
+Test  : test_basic
+Test  : test_basic_secure
