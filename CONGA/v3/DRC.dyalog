@@ -295,7 +295,7 @@
       :If 0=⊃r
       :AndIf ∨/'OwnCert' 'PeerCert'∊a[2]
       :AndIf 0<⊃⍴2⊃r
-          (2⊃r)←SetParentCerts ##.⎕NEW¨Conga.X509Cert,∘⊂¨⎕THIS,¨⊂¨2⊃r
+          (2⊃r)←SetParentCerts ##.⎕NEW¨X509Cert,∘⊂¨⎕THIS,¨⊂¨2⊃r
       :EndIf
     ∇
 
