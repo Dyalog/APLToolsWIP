@@ -17,7 +17,7 @@
       DYALOG←'/',⍨2 ⎕NQ'.' 'GetEnvironment' 'Dyalog'
       INDEXHTML←DYALOG,'apllib/conga/HttpServers/chat.html'
       :If ~⎕NEXISTS INDEXHTML
-          'Index page "',INDEXHTML,'" not found'⎕SIGNAL 2
+          ('Index page "',INDEXHTML,'" not found')⎕SIGNAL 2
       :EndIf
     ∇
 
@@ -50,14 +50,15 @@
     ∇
 
     ⍝ When the Browser sent data to the server
+   
     ∇ onWSReceive(obj data);code;msg;ns;resp;final;opcode
       :Access Public                
       
       (msg final opcode)←data
-      ns←⎕JSON msg
+      ns←{2::7159⌶⍵ ⋄ ⎕JSON ⍵}msg
       ns.date←,'ZI4,<->,ZI2,<->,ZI2,< >,ZI2,<:>,ZI2,<:>,ZI2,<.>,ZI3'⎕FMT⍉⍪⎕TS  
 
-      resp←1 ⎕JSON ns
+      resp←{2::7160⌶⍵ ⋄ ⎕JSON ⍵}ns
       {}clients{srv.DRC.Send ⍺ ⍵}¨⊂resp 1
     ∇
     
