@@ -2,7 +2,7 @@
 ID         : Conga 3.0 Cross-Version Tests
 Description: Basic functionality tests for Conga v3.0
 
-Setup   : setup_v2 setup_v3 setup_v3_root
+Setup   : setup_v2 setup_v3
 Teardown: teardown
 Test    : test_basic
 Test    : test_core
