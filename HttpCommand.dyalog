@@ -146,7 +146,7 @@
 
     ∇ r←Version
       :Access public shared
-      r←'HttpCommand' '1.1.0' '2017-02-26'
+      r←'HttpCommand' '2.1.0' '2017-04-12'
     ∇
 
     ∇ make
@@ -188,7 +188,7 @@
     ∇
 
 
-    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;rc;dyalog;FileSep;donetime;congaCopied;formContentType;ind;len
+    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;rc;dyalog;FileSep;donetime;congaCopied;formContentType;ind;len;mode;obj;evt;dat
 ⍝ issue an HTTP command
 ⍝ certs - optional [X509Cert [SSLValidation [Priority]]]
 ⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/page[?query_string]]
@@ -214,13 +214,13 @@
               dyalog←{⍵,(-FileSep=¯1↑⍵)↓FileSep}2 ⎕NQ'.' 'GetEnvironment' 'DYALOG'
               'DRC'⎕CY dyalog,'ws/conga' ⍝ runtime needs full workspace path
               :If {0::1 ⋄ 0⊣⍎'DRC'}''
-                  ⎕←'Conga namespace DRC not found or defined'
+                  ⎕←'*** Conga namespace DRC not found or defined'
                   →0
               :EndIf
               LDRC←DRC
               congaCopied←1
           :Else
-              ⎕←'Conga namespace DRC not found or defined'
+              ⎕←'*** Conga namespace DRC not found or defined'
               →0
           :EndSelect
       :ElseIf 9=⎕NC'LocalDRC'
@@ -274,7 +274,7 @@
           :If cmd≢'GET'     ⍝ and not a GET command
               ⍝↓↓↓ specify the default content type (if not already specified)
               hdrs←'Content-Type'(hdrs addHeader)formContentType←'application/x-www-form-urlencoded'
-              :If formContentType≡hdrs GetHeader'Content-Type'
+              :If formContentType≡hdrs Lookup'Content-Type'
                   parms←UrlEncode parms
               :EndIf
               hdrs←'Content-Length'(hdrs addHeader)⍴parms
@@ -289,14 +289,34 @@
      
       donetime←⌊⎕AI[3]+1000×WaitTime ⍝ time after which we'll time out
      
-      :If 0=⊃(err cmd)←2↑rc←LDRC.Clt''host port'Text' 100000,pars ⍝ 100,000 is max receive buffer size
+      mode←'text' 'http'⊃⍨1+3≤⊃LDRC.Version ⍝ Conga 3.0 introduced native HTTP mode
+     
+      :If 0=⊃(err cmd)←2↑rc←LDRC.Clt''host port mode 100000,pars ⍝ 100,000 is max receive buffer size
       :AndIf 0=⊃rc←LDRC.Send cmd(req,NL,parms)
      
           chunked chunk buffer chunklength←0 '' '' 0
           done data datalen headerlen header←0 ⍬ 0 0 ⍬
           :Repeat
-              :If ~done←0≠1⊃rc←LDRC.Wait cmd 5000            ⍝ Wait up to 5 secs
-                  :If rc[3]∊'Block' 'BlockLast'             ⍝ If we got some data
+              :If ~done←0≠err←1⊃rc←LDRC.Wait cmd 5000            ⍝ Wait up to 5 secs
+                  (err obj evt dat)←4↑rc
+                  :Select evt
+              ⍝ Conga 3.0+ handling
+                  :Case 'HTTPHeader'
+                      (headerlen header)←DecodeHeader dat
+                      datalen←⊃(toNum header Lookup'Content-Length'),¯1 ⍝ ¯1 if no content length not specified
+                      chunked←∨/'chunked'⍷header Lookup'Transfer-Encoding'
+                      done←chunked<datalen<1
+                  :Case 'HTTPBody'
+                      data←dat
+                      done←1
+                  :Case 'HTTPChunk'
+                      data,←dat
+                  :Case 'HTTPTrailer'
+                      header⍪←2⊃DecodeHeader dat
+                      done←1
+     
+              ⍝ Pre-Conga 3.0 handling
+                  :CaseList 'Block' 'BlockLast'             ⍝ If we got some data
                       :If chunked
                           chunk←4⊃rc
                       :ElseIf 0<⍴data,←4⊃rc
@@ -304,51 +324,56 @@
                           (headerlen header)←DecodeHeader data
                           :If 0<headerlen
                               data←headerlen↓data
-                              :If chunked←∨/'chunked'⍷header GetHeader'Transfer-Encoding'
+                              :If chunked←∨/'chunked'⍷header Lookup'Transfer-Encoding'
                                   chunk←data
                                   data←''
                               :Else
-                                  datalen←⊃(toNum header GetHeader'Content-Length'),¯1 ⍝ ¯1 if no content length not specified
+                                  datalen←⊃(toNum header Lookup'Content-Length'),¯1 ⍝ ¯1 if no content length not specified
                               :EndIf
                           :EndIf
                       :EndIf
-                  :Else
-                      ⎕←rc ⍝ Error?
-                      ∘∘∘  ⍝ !! Intentional !!
-                  :EndIf
-                  :If chunked
-                      buffer,←chunk
-                      :While done<¯1≠⊃(len chunklength)←getchunklen buffer
-                          :If (⍴buffer)≥4+len+chunklength
-                              data,←chunklength↑(len+2)↓buffer
-                              buffer←(chunklength+len+4)↓buffer
-                              :If done←0=chunklength ⍝ chunked transfer can add headers at the end of the transmission
-                                  header←header⍪2⊃DecodeHeader buffer
+                      :If chunked
+                          buffer,←chunk
+                          :While done<¯1≠⊃(len chunklength)←getchunklen buffer
+                              :If (⍴buffer)≥4+len+chunklength
+                                  data,←chunklength↑(len+2)↓buffer
+                                  buffer←(chunklength+len+4)↓buffer
+                                  :If done←0=chunklength ⍝ chunked transfer can add headers at the end of the transmission
+                                      header←header⍪2⊃DecodeHeader buffer
+                                  :EndIf
                               :EndIf
-                          :EndIf
-                      :EndWhile
-                  :Else
-                      done←done∨'BlockLast'≡3⊃rc                        ⍝ Done if socket was closed
-                      :If datalen>0
-                          done←done∨datalen≤⍴data ⍝ ... or if declared amount of data rcvd
+                          :EndWhile
                       :Else
-                          done←done∨(∨/'</html>'⍷data)∨(∨/'</HTML>'⍷data)
+                          done←done∨'BlockLast'≡3⊃rc                        ⍝ Done if socket was closed
+                          :If datalen>0
+                              done←done∨datalen≤⍴data ⍝ ... or if declared amount of data rcvd
+                          :Else
+                              done←done∨(∨/'</html>'⍷data)∨(∨/'</HTML>'⍷data)
+                          :EndIf
                       :EndIf
-                  :EndIf
-              :ElseIf 100=1⊃rc ⍝ timeout?
+     
+                  :Case 'Timeout'
+                      done←⎕AI[3]>donetime
+     
+                  :Else  ⍝ This shouldn't happen
+                      ⎕←'*** Unhandled event type - ',evt
+                      ∘∘∘  ⍝ !! Intentional !!
+                  :EndSelect
+     
+              :ElseIf 100=err ⍝ timeout?
                   done←⎕AI[3]>donetime
               :EndIf
           :Until done
      
-          :If 0=1⊃rc
+          :If 0=err
               :Trap 0 ⍝ If any errors occur, abandon conversion
-                  :Select header GetHeader'content-encoding' ⍝ was the response compressed?
+                  :Select header Lookup'content-encoding' ⍝ was the response compressed?
                   :Case 'deflate'
                       data←fromutf8 LDRC.flate.Inflate 120 156{(2×⍺≡2↑⍵)↓⍺,⍵}256|83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
                   :Case 'gzip'
                       data←fromutf8 256|¯3(219⌶)83 ⎕DR data
                   :Else
-                      :If ∨/'charset=utf-8'⍷header GetHeader'content-type'
+                      :If ∨/'charset=utf-8'⍷header Lookup'content-type'
                           data←'UTF-8'⎕UCS ⎕UCS data ⍝ Convert from UTF-8
                       :EndIf
                   :EndSelect
@@ -369,7 +394,7 @@
           r.(rc Headers Data)←(1⊃rc)header data
      
       :Else
-          ⎕←'Connection failed ',,⍕rc
+          ⎕←'*** Connection failed ',,⍕rc
           r.rc←1⊃rc
       :EndIf
      
@@ -395,10 +420,12 @@
     makeHeaders←{0∊⍴⍵:0 2⍴⊂'' ⋄ 2=⍴⍴⍵:⍵ ⋄ ↑2 eis ⍵}
     fmtHeaders←{0∊⍴⍵:'' ⋄ ∊{0∊⍴2⊃⍵:'' ⋄ NL,⍨(firstCaps 1⊃⍵),': ',⍕2⊃⍵}¨↓⍵}
     firstCaps←{1↓{(¯1↓0,'-'=⍵) (819⌶)¨ ⍵}'-',⍵}
-    addHeader←{'∘???∘'≡⍺⍺ GetHeader ⍺:⍺⍺⍪⍺ ⍵ ⋄ ⍺⍺} ⍝ add a header unless it's already defined
+    addHeader←{'∘???∘'≡⍺⍺ Lookup ⍺:⍺⍺⍪⍺ ⍵ ⋄ ⍺⍺} ⍝ add a header unless it's already defined
 
-    ∇ r←a GetHeader w
-      r←a{(⍺[;2],⊂'∘???∘')⊃⍨(lc¨⍺[;1])⍳eis lc ⍵}w
+    ∇ r←table Lookup name
+    ⍝ lookup a name/value-table value by name, return '∘???∘' if not found
+      :Access Public Shared
+      r←table{(⍺[;2],⊂'∘???∘')⊃⍨(lc¨⍺[;1])⍳eis lc ⍵}name
     ∇
 
     ∇ name AddHeader value
@@ -440,16 +467,15 @@
       }w
     ∇
 
-    ∇ r←DecodeHeader buf;len;d;i
+    ∇ r←DecodeHeader buf;len;d
       ⍝ Decode HTTP Header
       r←0(0 2⍴⊂'')
-      :If 0<i←⊃{((NL,NL)⍷⍵)/⍳⍴⍵}buf
-          len←(¯1+⍴NL,NL)+i
+      :If 0<len←¯1+⊃{((NL,NL)⍷⍵)/⍳⍴⍵}buf
           d←(⍴NL)↓¨{(NL⍷⍵)⊂⍵}NL,len↑buf
           d←↑{((p-1)↑⍵)((p←⍵⍳':')↓⍵)}¨d
           d[;1]←lc¨d[;1]
           d[;2]←dlb¨d[;2]
-          r←len d
+          r←(len+4) d
       :EndIf
     ∇
 
@@ -502,22 +528,6 @@
           r←m/r
       :EndIf
     ∇
-
-    :Section Test Scripts
-
-    ∇ TestHttpCommand;host;report;params
-      :Access public shared
-      report←{(50↑⍺),(': Failed' ': Passed'[1+⍵])}
-      host←'https://jsonplaceholder.typicode.com/'
-      'RESTful GET all posts'report 0 200∧.=(Get host,'posts').(rc HttpStatus)
-      (params←⎕NS'').(title body userId)←'foo' 'bar' 1
-      'RESTful POST'report 0 201∧.=(Do'post'(host,'posts')params).(rc HttpStatus)
-      (params←⎕NS'').(title body userId id)←'foo' 'bar' 1 200
-      'RESTful PUT'report 0 200∧.=(Do'put'(host,'posts/1')params).(rc HttpStatus)
-    ∇
-
-
-    :EndSection
 
     :Section Documentation Utilities
     ⍝ these are generic utilities used for documentation
