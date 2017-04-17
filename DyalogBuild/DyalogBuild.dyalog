@@ -44,7 +44,7 @@
       r←(2⊃⎕SI),'[',(⍕2⊃⎕LC),']: ',msg
     ∇
 
-    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension
+    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
      
@@ -54,6 +54,10 @@
      
       LOGS←''
       (verbose filter crash)←args.(verbose filter crash)
+      :If null≢repeat←args.repeat
+          repeat←⊃2⊃⎕VFI repeat
+      :EndIf
+      repeat←1⌈repeat
      
       :If 9=#.⎕NC source←1⊃args.Arguments ⍝ It's a namespace
           ns←#⍎source
@@ -125,7 +129,11 @@
      
       setups←{1↓¨(⍵=⊃⍵)⊂⍵}' ',args.setup
       r←LOGS 
-     
+      
+      :For run :In ⍳repeat
+         :If verbose∧repeat≠0
+             0 log 'run #',⍕run
+         :EndIf
       :For setup :In setups 
           steps←0
           start←⎕AI[3]
@@ -162,7 +170,8 @@
               r,←(⊂'Errors encountered:'),LOGS
           :EndIf
       :EndFor ⍝ Setup
-     
+     :EndFor ⍝ repeat
+          
      fail:
       r←⍪r
     ∇
@@ -440,7 +449,7 @@
       r[1].Desc←'Execute a DyalogBuild file'
       r[1].Parse←'1S -production -clear[=]'
       r[2].Desc←'Run tests from a namespace or folder'
-      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -crash'
+      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -crash -repeat='
     ∇
 
     ∇ Û←Run(Ûcmd Ûargs);file
@@ -479,7 +488,8 @@
               r,←⊂'-filter=string   will only run functions where string is found in the leading ⍝Test: comment'
               r,←⊂'-setup=fnname    will run fnname before any tests'
               r,←⊂'-teardown=fnname will run fnname after all tests'
-              r,←⊂'-crash           to crash on error, rather than log and continue'
+              r,←⊂'-crash           to crash on error, rather than log and continue' 
+              r,←⊂'-repeat=n        repeat test n times' 
           :EndIf
       :Else
           r←'Internal error: no help available for ',Cmd
