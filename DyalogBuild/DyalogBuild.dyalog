@@ -10,40 +10,41 @@
     getparam←{⍺←'' ⋄ (⌊/names⍳eis ⍵)⊃values,⊂⍺} ⍝ Get value of parameter
     getnumparam←{⍺←⊣ ⋄⊃2⊃⎕VFI ⍺ getparam ⍵}  ⍝ Get numeric parameter (0 if not set)
     lc←0∘(819⌶) ⋄ uc←1∘(819⌶)                ⍝ lower & upper case
+    null←0                                   ⍝ UCMD switch not specified
 
   ⍝ test "DSL" functions
 
     ∇ r←QCSV args;z;file;encoding;coltypes;num
     ⍝ Primitive ⎕CSV for pre-v16
     ⍝ No validation, no options
-
-     :Trap 2 ⍝ Syntax Error
-        r←⎕CSV args
-     :Else
-        (file encoding coltypes)←args
-        z←1⊃⎕NGET file 1
-        z←1↓¨↑{(','=⍵)⊂⍵}¨',',¨z
-        :If 0≠⍴num←(2=coltypes)/⍳⍴coltypes
-           z[;num]←{⊃2⊃⎕VFI ⍵}¨z[;num]
-        :EndIf
-        r←z
-     :EndTrap
+     
+      :Trap 2 ⍝ Syntax Error
+          r←⎕CSV args
+      :Else
+          (file encoding coltypes)←args
+          z←1⊃⎕NGET file 1
+          z←1↓¨↑{(','=⍵)⊂⍵}¨',',¨z
+          :If 0≠⍴num←(2=coltypes)/⍳⍴coltypes
+              z[;num]←{⊃2⊃⎕VFI ⍵}¨z[;num]
+          :EndIf
+          r←z
+      :EndTrap
     ∇
 
     ∇ r←expect check got
-      :If r←expect≢got                               
+      :If r←expect≢got
           ⎕←'expect≢got:'
           ⎕←(2⊃⎕SI),'[',(⍕2⊃⎕LC),'] ',(1+2⊃⎕LC)⊃⎕NR 2⊃⎕SI
           ∘∘∘
       :EndIf
-    ∇     
-    
-    ∇ line←line because msg                                
-     ⍝ set global "r", return branch label 
+    ∇
+
+    ∇ line←line because msg
+     ⍝ set global "r", return branch label
       r←(2⊃⎕SI),'[',(⍕2⊃⎕LC),']: ',msg
     ∇
 
-    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash
+    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
      
@@ -53,55 +54,92 @@
      
       LOGS←''
       (verbose filter crash)←args.(verbose filter crash)
+      :If null≢repeat←args.repeat
+          repeat←⊃2⊃⎕VFI repeat
+      :EndIf
+      repeat←1⌈repeat
      
       :If 9=#.⎕NC source←1⊃args.Arguments ⍝ It's a namespace
           ns←#⍎source
           TESTSOURCE←⊃1 ⎕NPARTS''
-      :ElseIf ⎕NEXISTS source
-          TESTSOURCE←⊃⎕NPARTS source
-          :Select ⊃1 ⎕NINFO source
-          :Case 1 ⍝ It's a folder
-              files←⊃0(⎕NINFO⍠1)source,'/*.dyalog'
-              ns←⎕NS''
-              :For f :In files
-                  ⍝ z←ns.⎕FIX 'file://',f ⍝ /// source updates not working
-                  ⎕SE.SALT.Load f,' -target=ns'
-              :EndFor
-              :If verbose ⋄ 0 log(⍕≢files),' files loaded from ',source ⋄ :EndIf
-          :Else ⍝ We hope it is a file
-              ⍝ ns←#.⎕FIX 'file://',f
-              ⎕SE.SALT.Load f,' -target=ns'
-              :If verbose ⋄ 0 log'load file ',source ⋄ :EndIf
-          :EndSelect
-      :Else
-          logtest'"',source,'" is neither a namespace or a folder.'
-          →END
-      :EndIf
+      :Else                               ⍝ Not a namespace
+          :If ⎕NEXISTS f←source           ⍝ Argument is a file
+          :OrIf ⎕NEXISTS f←source,'.dyalogtest'
+              (TESTSOURCE z extension)←⎕NPARTS f
+              :If 2=type←⊃1 ⎕NINFO f
+                  :If '.dyalogtest'≡lc extension ⍝ That's a suite
+                      :If null≡args.suite
+                          args.suite←f
+                      :EndIf
+                      f←¯1↓TESTSOURCE ⋄ type←1 ⍝ Load contents of folder
+                  :Else                          ⍝ Arg is a source file - load it
+                      ⍝ ns←#.⎕FIX 'file://',f    ⍝ When the interpreter can do it one day
+                      ⎕SE.SALT.Load f,' -target=ns'
+                      :If verbose ⋄ 0 log'load file ',source ⋄ :EndIf
+                  :EndIf
+              :EndIf
      
-      :If 0≢suite←args.suite ⍝ Is a test suite defined?
-          ∘∘∘
-          :If ⎕NEXISTS args.suite
+              :If 1=type
+                  files←⊃0(⎕NINFO⍠1)f,'/*.dyalog'
+                  ns←⎕NS''
+                  :For f :In files
+                  ⍝ z←ns.⎕FIX 'file://',f ⍝ /// source updates not working
+                      ⎕SE.SALT.Load f,' -target=ns'
+                  :EndFor
+                  :If verbose ⋄ 0 log(⍕≢files),' files loaded from ',source ⋄ :EndIf
+              :EndIf
+          :Else
+              logtest'"',source,'" is neither a namespace or a folder.'
+              →END
           :EndIf
       :EndIf
-
+     
+      :If null≢suite←args.suite ⍝ Is a test suite defined?
+          ⍝ Merge settings
+          ignored←⍬
+          sargs←LoadTestSuite suite
+     
+          :For v :In (sargs.⎕NL-2)∩args.⎕NL-2 ⍝ overlap?
+              :If null≢args⍎v
+                  ignored,←⊂v
+              :EndIf
+          :EndFor
+          'args'⎕NS sargs ⍝ merge
+          :If 0≠≢ignored
+              0 log'*** warning - switches overwritten by test suite contents: ',,⍕ignored
+          :EndIf
+      :EndIf
+     
     ⍝ Establish test DSL in the namespace
-         
       :If crash=0 ⋄ ns.check←≢
       :Else
           ns.⎕FX ⎕NR'check'
-      :EndIf 
-      ns.⎕FX ⎕NR 'because'
+      :EndIf
+      ns.⎕FX ⎕NR'because'
      
-      fns←{⍵⌿⍨'test_'∧.=⍨5(↑⍤1)⍵}ns.⎕NL 3
+      :If 0≠⍴args.tests
+          fns←{1↓¨(','=⍵)⊂⍵}args.tests,⍨','~⊃args.tests
+          :If ∨/m←3≠⌊ns.⎕NC fns
+              0 log'*** function(s) not found: ',,⍕m/fns
+              fns→(~m)/fns
+          :EndIf
+      :Else ⍝ No functions selected - run all named test_*
+          fns←↓{⍵⌿⍨'test_'∧.=⍨5(↑⍤1)⍵}ns.⎕NL 3
+      :EndIf
      
-      setups←{1↓¨(⍵=⊃⍵)⊂⍵}',',args.setup
-      r←LOGS ⋄ LOGS←''
-      steps←0
-      start←⎕AI[3]
-     
-      :For setup :In setups
-     
-          :If 0≢f←setup
+      setups←{1↓¨(⍵=⊃⍵)⊂⍵}' ',args.setup
+      r←LOGS 
+      
+      :For run :In ⍳repeat
+         :If verbose∧repeat≠0
+             0 log 'run #',⍕run
+         :EndIf
+      :For setup :In setups 
+          steps←0
+          start←⎕AI[3]
+          LOGS←''
+          :If 1<≢setups ⋄ r,←⊂'For setup = ',setup ⋄ :EndIf
+          :If null≢f←setup
               :If 3=ns.⎕NC f ⍝ function is there
                   :If verbose ⋄ 0 log'running setup: ',f ⋄ :EndIf
                   f logtest(ns⍎f)⍬
@@ -109,16 +147,16 @@
               :EndIf
           :EndIf
      
-          :For f :In ↓fns
+          :For f :In fns
               :If 0≡filter
               :OrIf ∨/filter⍷{({'⍝∇Test:'≡7↑⍵~' '}¨⍵)/⍵}ns.⎕NR f
-                  steps+←1                                   
-                  :If verbose ⋄ 0 log 'running: ',f ⋄ :EndIf
+                  steps+←1
+                  :If verbose ⋄ 0 log'running: ',f ⋄ :EndIf
                   f logtest(ns⍎f)⍬
               :EndIf
           :EndFor
      
-          :If 0≢f←args.teardown
+          :If null≢f←args.teardown
               :If 3=ns.⎕NC f ⍝ function is there
                   :If verbose ⋄ 0 log'running teardown: ',f ⋄ :EndIf
                   f logtest(ns⍎f)⍬
@@ -127,14 +165,64 @@
           :EndIf
      
      END:
-          :If 1<≢setups ⋄ r,←(⊂'For setup = ',setup),r ⋄ :EndIf
           :If 0=⍴LOGS ⋄ r,←⊂(⍕steps),' test',((1≠steps)/'s'),' passed in ',(1⍕0.001×⎕AI[3]-start),'s'
           :Else
               r,←(⊂'Errors encountered:'),LOGS
           :EndIf
       :EndFor ⍝ Setup
+     :EndFor ⍝ repeat
+          
+     fail:
       r←⍪r
     ∇
+
+    ∇ args←LoadTestSuite suite;setups;lines;i;cmd;params;names;values;tmp;f
+     
+      args←⎕NS''
+     
+      :If ⎕NEXISTS suite
+          lines←⊃⎕NGET suite 1
+      :Else
+          r←,⊂'Test suite "',suite,'" not found.' ⋄ →0
+      :EndIf
+     
+      :For i :In ⍳≢lines
+          (cmd params)←':'split i⊃lines
+          :If cmd∧.=' ' ⋄ :Continue ⋄ :EndIf ⍝ Ignore blank lines
+          (names values)←↓[1]↑¯2↑¨(⊂⊂''),¨'='split¨','split params
+          cmd←lc cmd~' ' ⋄ names←lc names
+     
+          :If (i=1)∧'dyalogtest'≢cmd
+              'First line of file must define DyalogTest version'⎕SIGNAL 11
+          :EndIf
+     
+          :Select cmd
+          :Case 'dyalogtest'
+              :If 0.1=_version←getnumparam'version' ''
+                  0 log'DyalogTest version ',⍕_version
+                  log'Processing Test Suite "',suite,'"'
+              :Else
+                  'This version of ]test only supports Dyalog Test file format v0.1'⎕SIGNAL 2
+              :EndIf
+     
+          :Case 'setup'
+              args.setup←getparam'fn' ''
+     
+          :Case 'test'
+              :If 0=⎕NC'args.tests' ⋄ args.tests←⍬ ⋄ :EndIf
+              args.tests,←',',getparam'fn' ''
+     
+          :Case 'teardown'
+              args.teardown←getparam'fn' '' ⍝ function is there
+     
+          :CaseList 'id' 'description'
+              log cmd,': ',getparam''
+          :Else
+              log'Invalid keyword: ',cmd
+          :EndSelect
+      :EndFor
+    ∇
+
 
     ∇ r←DoBuild args;file;prod;path;lines;extn;name;exists;extension;p;i;cmd;params;values;names;_description;_id;_version;id;v;target;source;wild;options;z;tmp;types;varname;start;_defaults;f;files;WIN;n
     ⍝ Process a .dyalogbuild file
@@ -246,7 +334,7 @@
                       logerror'Not a free variable name: ',target,', current name class = ',⍕tmp ⋄ :Continue
                   :EndIf
                   :Trap 999
-                      tmp←QCSV (path,source)'',(0≠≢types)/⊂types
+                      tmp←QCSV(path,source)'',(0≠≢types)/⊂types
                       ⍎target,'←tmp'
                       log target,' defined from CSV file "',source,'"'
                   :Else
@@ -268,7 +356,7 @@
               :If 0=≢z     ⍝ no names
                   logerror'Nothing found: ',tmp
               :ElseIf 1=≢z ⍝ exactly one name
-                  log {(uc 1↑⍵),1↓⍵}cmd,' ',source,' loaded as ',⍕z
+                  log{(uc 1↑⍵),1↓⍵}cmd,' ',source,' loaded as ',⍕z
               :Else        ⍝ many names
                   log(⍕≢z),' names loaded from ',source,' into ',target
               :EndIf
@@ -361,7 +449,7 @@
       r[1].Desc←'Execute a DyalogBuild file'
       r[1].Parse←'1S -production -clear[=]'
       r[2].Desc←'Run tests from a namespace or folder'
-      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -crash'
+      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -crash -repeat='
     ∇
 
     ∇ Û←Run(Ûcmd Ûargs);file
@@ -400,7 +488,8 @@
               r,←⊂'-filter=string   will only run functions where string is found in the leading ⍝Test: comment'
               r,←⊂'-setup=fnname    will run fnname before any tests'
               r,←⊂'-teardown=fnname will run fnname after all tests'
-              r,←⊂'-crash           to crash on error, rather than log and continue'
+              r,←⊂'-crash           to crash on error, rather than log and continue' 
+              r,←⊂'-repeat=n        repeat test n times' 
           :EndIf
       :Else
           r←'Internal error: no help available for ',Cmd
