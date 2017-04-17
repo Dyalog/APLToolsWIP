@@ -538,7 +538,7 @@
       CR←⎕UCS 13
       box←{{⍵{⎕AV[(1,⍵,1)/223 226 222],CR,⎕AV[231],⍺,⎕AV[231],CR,⎕AV[(1,⍵,1)/224 226 221]}⍴⍵}(⍵~CR),' '}
       docn←1↓⎕SRC ⎕THIS
-      docn←1↓¨docn/⍨∧\'⍝'=⊃¨r ⍝ keep all contiguous comments
+      docn←1↓¨docn/⍨∧\'⍝'=⊃¨docn⍝ keep all contiguous comments
       docn←docn/⍨'⍝'≠⊃¨docn     ⍝ remove any lines beginning with ⍝⍝
       sections←{∨/'::'⍷⍵}¨docn
       :If describeOnly
