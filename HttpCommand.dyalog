@@ -215,7 +215,7 @@
      
       congaCopied←0
      
-      :If ''≡{6::⍵ ⋄ LDRC}''
+      :If ''≡{6::⍵ ⋄ LDRC}'' ⍝ if
           :If 0∊⍴CongaRef
               class←⊃⊃⎕CLASS ⎕THIS
               ref nc←{1↑¨⍵{(×⍵)∘/¨⍺ ⍵}#.⎕NC ⍵}ns←'Conga' 'DRC'
@@ -310,117 +310,121 @@
       mode←'text' 'http'⊃⍨1+3≤⊃LDRC.Version ⍝ Conga 3.0 introduced native HTTP mode
      
       :If 0=⊃(err clt)←2↑rc←LDRC.Clt''host port mode 100000,pars ⍝ 100,000 is max receive buffer size
-      :AndIf 0=⊃rc←LDRC.Send clt(req,NL,parms)
+          :If 0=⊃rc←LDRC.Send clt(req,NL,parms)
+              chunked chunk buffer chunklength←0 '' '' 0
+              done data datalen headerlen header←0 ⍬ 0 0 ⍬
      
-          chunked chunk buffer chunklength←0 '' '' 0
-          done data datalen headerlen header←0 ⍬ 0 0 ⍬
-          :Repeat
-              :If ~done←0≠err←1⊃rc←LDRC.Wait clt 5000            ⍝ Wait up to 5 secs
-                  (err obj evt dat)←4↑rc
-                  :Select evt
+              :Repeat
+                  :If ~done←0≠err←1⊃rc←LDRC.Wait clt 5000            ⍝ Wait up to 5 secs
+                      (err obj evt dat)←4↑rc
+                      :Select evt
               ⍝ Conga 3.0+ handling
-                  :Case 'HTTPHeader'
-                      (headerlen header)←DecodeHeader dat
-                      datalen←⊃(toNum header Lookup'Content-Length'),¯1 ⍝ ¯1 if no content length not specified
-                      chunked←∨/'chunked'⍷header Lookup'Transfer-Encoding'
-                      done←chunked<datalen<1
-                  :Case 'HTTPBody'
-                      data←dat
-                      done←1
-                  :Case 'HTTPChunk'
-                      data,←dat
-                  :Case 'HTTPTrailer'
-                      header⍪←2⊃DecodeHeader dat
-                      done←1
+                      :Case 'HTTPHeader'
+                          (headerlen header)←DecodeHeader dat
+                          datalen←⊃(toNum header Lookup'Content-Length'),¯1 ⍝ ¯1 if no content length not specified
+                          chunked←∨/'chunked'⍷header Lookup'Transfer-Encoding'
+                          done←chunked<datalen<1
+                      :Case 'HTTPBody'
+                          data←dat
+                          done←1
+                      :Case 'HTTPChunk'
+                          data,←dat
+                      :Case 'HTTPTrailer'
+                          header⍪←2⊃DecodeHeader dat
+                          done←1
      
               ⍝ Pre-Conga 3.0 handling
-                  :CaseList 'Block' 'BlockLast'             ⍝ If we got some data
-                      :If chunked
-                          chunk←4⊃rc
-                      :ElseIf 0<⍴data,←4⊃rc
-                      :AndIf 0=headerlen
-                          (headerlen header)←DecodeHeader data
-                          :If 0<headerlen
-                              data←headerlen↓data
-                              :If chunked←∨/'chunked'⍷header Lookup'Transfer-Encoding'
-                                  chunk←data
-                                  data←''
-                              :Else
-                                  datalen←⊃(toNum header Lookup'Content-Length'),¯1 ⍝ ¯1 if no content length not specified
-                              :EndIf
-                          :EndIf
-                      :EndIf
-                      :If chunked
-                          buffer,←chunk
-                          :While done<¯1≠⊃(len chunklength)←getchunklen buffer
-                              :If (⍴buffer)≥4+len+chunklength
-                                  data,←chunklength↑(len+2)↓buffer
-                                  buffer←(chunklength+len+4)↓buffer
-                                  :If done←0=chunklength ⍝ chunked transfer can add headers at the end of the transmission
-                                      header←header⍪2⊃DecodeHeader buffer
+                      :CaseList 'Block' 'BlockLast'             ⍝ If we got some data
+                          :If chunked
+                              chunk←4⊃rc
+                          :ElseIf 0<⍴data,←4⊃rc
+                          :AndIf 0=headerlen
+                              (headerlen header)←DecodeHeader data
+                              :If 0<headerlen
+                                  data←headerlen↓data
+                                  :If chunked←∨/'chunked'⍷header Lookup'Transfer-Encoding'
+                                      chunk←data
+                                      data←''
+                                  :Else
+                                      datalen←⊃(toNum header Lookup'Content-Length'),¯1 ⍝ ¯1 if no content length not specified
                                   :EndIf
                               :EndIf
-                          :EndWhile
-                      :Else
-                          done←done∨'BlockLast'≡3⊃rc                        ⍝ Done if socket was closed
-                          :If datalen>0
-                              done←done∨datalen≤⍴data ⍝ ... or if declared amount of data rcvd
+                          :EndIf
+                          :If chunked
+                              buffer,←chunk
+                              :While done<¯1≠⊃(len chunklength)←getchunklen buffer
+                                  :If (⍴buffer)≥4+len+chunklength
+                                      data,←chunklength↑(len+2)↓buffer
+                                      buffer←(chunklength+len+4)↓buffer
+                                      :If done←0=chunklength ⍝ chunked transfer can add headers at the end of the transmission
+                                          header←header⍪2⊃DecodeHeader buffer
+                                      :EndIf
+                                  :EndIf
+                              :EndWhile
                           :Else
-                              done←done∨(∨/'</html>'⍷data)∨(∨/'</HTML>'⍷data)
+                              done←done∨'BlockLast'≡3⊃rc                        ⍝ Done if socket was closed
+                              :If datalen>0
+                                  done←done∨datalen≤⍴data ⍝ ... or if declared amount of data rcvd
+                              :Else
+                                  done←done∨(∨/'</html>'⍷data)∨(∨/'</HTML>'⍷data)
+                              :EndIf
+                          :EndIf
+     
+                      :Case 'Timeout'
+                          done←⎕AI[3]>donetime
+     
+                      :Else  ⍝ This shouldn't happen
+                          ⎕←'*** Unhandled event type - ',evt
+                          ∘∘∘  ⍝ !! Intentional !!
+                      :EndSelect
+     
+                  :ElseIf 100=err ⍝ timeout?
+                      done←⎕AI[3]>donetime
+                  :Else           ⍝ some other error (very unlikely)
+                      ⎕←'*** Wait error ',,⍕rc
+                  :EndIf
+              :Until done
+     
+              :If 0=err
+                  :Trap 0 ⍝ If any errors occur, abandon conversion
+                      :Select header Lookup'content-encoding' ⍝ was the response compressed?
+                      :Case 'deflate'
+                          data←fromutf8 LDRC.flate.Inflate 120 156{(2×⍺≡2↑⍵)↓⍺,⍵}256|83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
+                      :Case 'gzip'
+                          data←fromutf8 256|¯3(219⌶)83 ⎕DR data
+                      :Else
+                          :If ∨/'charset=utf-8'⍷header Lookup'content-type'
+                              data←'UTF-8'⎕UCS ⎕UCS data ⍝ Convert from UTF-8
+                          :EndIf
+                      :EndSelect
+     
+                      :If {(⍵[3]∊'12357')∧'30 '≡⍵[1 2 4]}4↑{⍵↓⍨⍵⍳' '}(⊂1 1)⊃header ⍝ redirected? (HTTP status codes 301, 302, 303, 305, 307)
+                          url←'location'{(⍵[;1]⍳⊂⍺)⊃⍵[;2],⊂''}header ⍝ use the "location" header field for the URL
+                          :If ×≢url
+                              {}LDRC.Close clt
+                              →GET
                           :EndIf
                       :EndIf
      
-                  :Case 'Timeout'
-                      done←⎕AI[3]>donetime
+                  :EndTrap
      
-                  :Else  ⍝ This shouldn't happen
-                      ⎕←'*** Unhandled event type - ',evt
-                      ∘∘∘  ⍝ !! Intentional !!
-                  :EndSelect
+                  r.(HttpVer HttpStatus HttpStatusMsg)←{⎕ML←3 ⋄ ⍵⊂⍨{⍵∨2<+\~⍵}⍵≠' '}(⊂1 1)⊃header
+                  r.HttpStatus←toNum r.HttpStatus
+                  header↓⍨←1
      
-              :ElseIf 100=err ⍝ timeout?
-                  done←⎕AI[3]>donetime
+                  :If secure ⋄ r.PeerCert←⊂LDRC.GetProp clt'PeerCert' ⋄ :EndIf
               :EndIf
-          :Until done
      
-          :If 0=err
-              :Trap 0 ⍝ If any errors occur, abandon conversion
-                  :Select header Lookup'content-encoding' ⍝ was the response compressed?
-                  :Case 'deflate'
-                      data←fromutf8 LDRC.flate.Inflate 120 156{(2×⍺≡2↑⍵)↓⍺,⍵}256|83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
-                  :Case 'gzip'
-                      data←fromutf8 256|¯3(219⌶)83 ⎕DR data
-                  :Else
-                      :If ∨/'charset=utf-8'⍷header Lookup'content-type'
-                          data←'UTF-8'⎕UCS ⎕UCS data ⍝ Convert from UTF-8
-                      :EndIf
-                  :EndSelect
+              r.(Headers Data)←header data
      
-                  :If {(⍵[3]∊'12357')∧'30 '≡⍵[1 2 4]}4↑{⍵↓⍨⍵⍳' '}(⊂1 1)⊃header ⍝ redirected? (HTTP status codes 301, 302, 303, 305, 307)
-                      url←'location'{(⍵[;1]⍳⊂⍺)⊃⍵[;2],⊂''}header ⍝ use the "location" header field for the URL
-                      :If ×≢url
-                          {}LDRC.Close clt
-                          →GET
-                      :EndIf
-                  :EndIf
-     
-              :EndTrap
-     
-              r.(HttpVer HttpStatus HttpStatusMsg)←{⎕ML←3 ⋄ ⍵⊂⍨{⍵∨2<+\~⍵}⍵≠' '}(⊂1 1)⊃header
-              r.HttpStatus←toNum r.HttpStatus
-              header↓⍨←1
-     
-              :If secure ⋄ r.PeerCert←⊂LDRC.GetProp clt'PeerCert' ⋄ :EndIf
+          :Else
+              ⎕←'*** Connection failed ',,⍕rc
           :EndIf
-     
-          r.(rc Headers Data)←(1⊃rc)header data
-     
+          {}LDRC.Close clt
       :Else
-          ⎕←'*** Connection failed ',,⍕rc
-          r.rc←1⊃rc
+          ⎕←'*** Client creation failed ',,⍕rc
       :EndIf
-     
-      {}LDRC.Close clt
+      r.rc←1⊃rc
     ∇
 
     NL←⎕UCS 13 10
@@ -436,7 +440,7 @@
     toNum←{0∊⍴⍵:⍬ ⋄ 1⊃2⊃⎕VFI ⍕⍵} ⍝ simple char to num
     makeHeaders←{0∊⍴⍵:0 2⍴⊂'' ⋄ 2=⍴⍴⍵:⍵ ⋄ ↑2 eis ⍵} ⍝ create header structure [;1] name [;2] value
     fmtHeaders←{0∊⍴⍵:'' ⋄ ∊{0∊⍴2⊃⍵:'' ⋄ NL,⍨(firstCaps 1⊃⍵),': ',⍕2⊃⍵}¨↓⍵} ⍝ formatted HTTP headers
-    firstCaps←{1↓{(¯1↓0,'-'=⍵) (819⌶)¨ ⍵}'-',⍵} ⍝ capitalize first letters e.g. Content-Encoding 
+    firstCaps←{1↓{(¯1↓0,'-'=⍵) (819⌶)¨ ⍵}'-',⍵} ⍝ capitalize first letters e.g. Content-Encoding
     addHeader←{'∘???∘'≡⍺⍺ Lookup ⍺:⍺⍺⍪⍺ ⍵ ⋄ ⍺⍺} ⍝ add a header unless it's already defined
 
     ∇ r←table Lookup name
