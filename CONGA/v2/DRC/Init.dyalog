@@ -1,11 +1,16 @@
-﻿ r←{reset}Init path;dllname;z;Path;ZSetHeader;unicode;bit64;filename;Paths;win;s;dirsep;mac;rootarg
- ⍝ Initialize Conga v3.0.0 (v2.x compatibility mode)
+﻿ r←{reset}Init path;dllname;z;Path;ZSetHeader;unicode;bit64;filename;Paths;win;s;dirsep;mac;rootarg;n
+ ⍝ Initialize Conga v3.0.0 (v2.x compatibility namespace)
 
  :If 2=⎕NC'reset' ⋄ :AndIf 2=⎕NC'⍙naedfns' ⋄ :AndIf reset=¯1    ⍝ Reload the dll
      {}Close'.'
  :EndIf
 
  :If 3=⎕NC'⍙InitRPC' ⍝ Library already loaded
+     :Trap 0 ⋄ n←≢Names'.'
+     :Else ⋄ n←¯1    ⍝ If Names fails, re-initialise
+     :EndTrap
+ :AndIf n≠¯1 ⍝ And function call does not fail
+
      r←0 'Conga already loaded'
      :If 2=⎕NC'reset' ⋄ :AndIf reset=1
          {}Close¨Names'.'

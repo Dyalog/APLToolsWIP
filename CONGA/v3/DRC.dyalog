@@ -5,12 +5,11 @@
     :Field Public RootName
 
       check←{
-          1006=⊃⍵:'Root not found - please re-initialise' ⎕SIGNAL 999
-          0≠⊃⍵:('DLL Error: ',,⍕⍵)⎕SIGNAL 999
+          0≠⊃⍵:('DLL Error: ',##.Conga.Error ⊃⍵)⎕SIGNAL 999
           0≠⊃2⊃⍵:(##.Conga.Error⊃2⊃⍵),1↓2⊃⍵
           2=⍴⍵:(⎕IO+1)⊃⍵
           1↓⍵}
-
+   
     lcase←0∘(819⌶)                    ⍝ Lower-casification
     ncase ←{(lcase ⍺) ⍺⍺ lcase ⍵ }    ⍝ Case-insensitive operator
 

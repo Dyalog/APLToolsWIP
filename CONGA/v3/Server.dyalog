@@ -58,20 +58,19 @@
     
         ∇ Stop
           :Access public
-          :if done=¯1 ⋄ :return ⋄:endif
+          :If done=¯1 ⋄ :Return ⋄:EndIf
 
           done←1
           cons←DRC.Names name
-          :If 0≠⎕NC name
-         
-     ⍝⎕ex ¨(⊂name,'.'),¨cons
+          :If 0≠⎕NC name         
               (⍎name).(⎕EX¨⎕NL 9)  ⍝ Clear all the Connection instances
               ⎕EX name             ⍝ Clear the namespace for all the instances
               _←DRC.Close name     ⍝ Close the server
               ⎕DL timeout÷1000     ⍝ wait for Wait to return
           :EndIf
-          :if 0≠⎕nc'htid'
-          :andIf htid≠0           ⍝ if thread have not ended by it self kill it
+          
+          :If 0≠⎕nc'htid'
+          :AndIf htid≠0           ⍝ if thread have not ended by it self kill it
               ⎕TKILL htid
           :EndIf
         ∇

@@ -1,7 +1,5 @@
 ﻿:Namespace DyalogBuild
-⍝ Implement Build & Test UCMDs
-⍝ 2017 03 15 Morten: Got started with Build
-⍝ 2017 04 10 Morten: Added Test
+⍝ Implement ]build & ]test UCMDs
 
     ⎕ML←⎕IO←1
 
@@ -44,7 +42,7 @@
       r←(2⊃⎕SI),'[',(⍕2⊃⎕LC),']: ',msg
     ∇
 
-    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run
+    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
      
@@ -53,7 +51,7 @@
       WSFOLDER←⊃⎕NPARTS ⎕WSID
      
       LOGS←''
-      (verbose filter crash)←args.(verbose filter crash)
+      (verbose filter crash silent)←args.(verbose filter crash silent)
       :If null≢repeat←args.repeat
           repeat←⊃2⊃⎕VFI repeat
       :EndIf
@@ -90,7 +88,7 @@
               :EndIf
           :Else
               logtest'"',source,'" is neither a namespace or a folder.'
-              →END
+              →fail⊣r←LOGS
           :EndIf
       :EndIf
      
@@ -121,57 +119,54 @@
           fns←{1↓¨(','=⍵)⊂⍵}args.tests,⍨','~⊃args.tests
           :If ∨/m←3≠⌊ns.⎕NC fns
               0 log'*** function(s) not found: ',,⍕m/fns
-              fns→(~m)/fns
+              fns←(~m)/fns
           :EndIf
       :Else ⍝ No functions selected - run all named test_*
           fns←↓{⍵⌿⍨'test_'∧.=⍨5(↑⍤1)⍵}ns.⎕NL 3
       :EndIf
      
       setups←{1↓¨(⍵=⊃⍵)⊂⍵}' ',args.setup
-      r←LOGS 
-      
+      r←LOGS
+     
       :For run :In ⍳repeat
-         :If verbose∧repeat≠0
-             0 log 'run #',⍕run
-         :EndIf
-      :For setup :In setups 
-          steps←0
-          start←⎕AI[3]
-          LOGS←''
-          :If 1<≢setups ⋄ r,←⊂'For setup = ',setup ⋄ :EndIf
-          :If null≢f←setup
-              :If 3=ns.⎕NC f ⍝ function is there
-                  :If verbose ⋄ 0 log'running setup: ',f ⋄ :EndIf
-                  f logtest(ns⍎f)⍬
-              :Else ⋄ logtest'-setup function not found: ',f
-              :EndIf
+          :If verbose∧repeat≠0
+              0 log'run #',⍕run
           :EndIf
-     
-          :For f :In fns
-              :If 0≡filter
-              :OrIf ∨/filter⍷{({'⍝∇Test:'≡7↑⍵~' '}¨⍵)/⍵}ns.⎕NR f
-                  steps+←1
-                  :If verbose ⋄ 0 log'running: ',f ⋄ :EndIf
-                  f logtest(ns⍎f)⍬
+          :For setup :In setups
+              steps←0
+              start←⎕AI[3]
+              LOGS←''
+              :If verbose∧1<≢setups ⋄ r,←⊂'For setup = ',setup ⋄ :EndIf
+              :If null≢f←setup
+                  :If 3=ns.⎕NC f ⍝ function is there
+                      :If verbose ⋄ 0 log'running setup: ',f ⋄ :EndIf
+                      f logtest(ns⍎f)⍬
+                  :Else ⋄ logtest'-setup function not found: ',f
+                  :EndIf
               :EndIf
-          :EndFor
      
-          :If null≢f←args.teardown
-              :If 3=ns.⎕NC f ⍝ function is there
-                  :If verbose ⋄ 0 log'running teardown: ',f ⋄ :EndIf
-                  f logtest(ns⍎f)⍬
-              :Else ⋄ logtest'-teardown function not found: ',f
+              :For f :In fns
+                      steps+←1
+                      :If verbose ⋄ 0 log'running: ',f ⋄ :EndIf
+                      f logtest(ns⍎f)⍬
+              :EndFor
+     
+              :If null≢f←args.teardown
+                  :If 3=ns.⎕NC f ⍝ function is there
+                      :If verbose ⋄ 0 log'running teardown: ',f ⋄ :EndIf
+                      f logtest(ns⍎f)⍬
+                  :Else ⋄ logtest'-teardown function not found: ',f
+                  :EndIf
               :EndIf
-          :EndIf
      
      END:
-          :If 0=⍴LOGS ⋄ r,←⊂(⍕steps),' test',((1≠steps)/'s'),' passed in ',(1⍕0.001×⎕AI[3]-start),'s'
-          :Else
-              r,←(⊂'Errors encountered:'),LOGS
-          :EndIf
-      :EndFor ⍝ Setup
-     :EndFor ⍝ repeat
-          
+              :If 0=⍴LOGS ⋄ r,←(silent≡null)/⊂'   ',((1≠≢setups)/setup,': '),(⍕steps),' test',((1≠steps)/'s'),' passed in ',(1⍕0.001×⎕AI[3]-start),'s'
+              :Else
+                  r,←(⊂'Errors encountered with setup "',setup,'":'),'   '∘,¨LOGS
+              :EndIf
+          :EndFor ⍝ Setup
+      :EndFor ⍝ repeat
+     
      fail:
       r←⍪r
     ∇
@@ -199,8 +194,10 @@
           :Select cmd
           :Case 'dyalogtest'
               :If 0.1=_version←getnumparam'version' ''
-                  0 log'DyalogTest version ',⍕_version
-                  log'Processing Test Suite "',suite,'"'
+                  :If verbose
+                      0 log'DyalogTest version ',⍕_version
+                      log'Processing Test Suite "',suite,'"'
+                  :EndIf
               :Else
                   'This version of ]test only supports Dyalog Test file format v0.1'⎕SIGNAL 2
               :EndIf
@@ -216,7 +213,7 @@
               args.teardown←getparam'fn' '' ⍝ function is there
      
           :CaseList 'id' 'description'
-              log cmd,': ',getparam''
+              :If verbose ⋄ log cmd,': ',getparam'' ⋄ :EndIf
           :Else
               log'Invalid keyword: ',cmd
           :EndSelect
@@ -449,7 +446,7 @@
       r[1].Desc←'Execute a DyalogBuild file'
       r[1].Parse←'1S -production -clear[=]'
       r[2].Desc←'Run tests from a namespace or folder'
-      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -crash -repeat='
+      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -silent -crash -repeat='
     ∇
 
     ∇ Û←Run(Ûcmd Ûargs);file
@@ -488,8 +485,10 @@
               r,←⊂'-filter=string   will only run functions where string is found in the leading ⍝Test: comment'
               r,←⊂'-setup=fnname    will run fnname before any tests'
               r,←⊂'-teardown=fnname will run fnname after all tests'
-              r,←⊂'-crash           to crash on error, rather than log and continue' 
-              r,←⊂'-repeat=n        repeat test n times' 
+              r,←⊂'-crash           to crash on error, rather than log and continue'
+              r,←⊂'-repeat=n        repeat test n times'
+              r,←⊂'-verbose         chatty mode while running'
+              r,←⊂'-silent          qa mode: only output actual errors'
           :EndIf
       :Else
           r←'Internal error: no help available for ',Cmd
