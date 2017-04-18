@@ -5,7 +5,7 @@
 ⍝ issue calls to web services, and communicate with any service which uses the
 ⍝ HTTP protocol for communications.
 ⍝
-⍝ N.B. requires Conga - the TCP/IP utility library
+⍝ N.B. requires Conga - the TCP/IP utility library (see Notes below)
 ⍝
 ⍝ Overview::
 ⍝ HttpCommand can be used in two ways:
@@ -120,6 +120,14 @@
 ⍝       UrlEncode ns
 ⍝ company=dyalog&language=APL
 ⍝
+⍝ Notes::
+⍝ HttpCommand uses Conga for TCP/IP communications and supports both Conga 2 and Conga 3
+⍝ Conga 2 uses the DRC namespace
+⍝ Conga 3 uses either the Conga namespace or DRC namespace for backwards compatibility
+⍝ HttpCommand will search for #.Conga and #.DRC and use them if they exist
+⍝ You can set the CongaRef public field to have HttpCommand use Conga or DRC located other than in the root of the workspace
+⍝ Otherwise HttpCommand will attempt to copy Conga or DRC from the conga workspace supplied with Dyalog APL
+⍝
 ⍝ Example Use Cases::
 ⍝
 ⍝ Retrieve the contents of a web page
@@ -137,12 +145,13 @@
     :field public Command←'GET'
     :field public Cert←⍬
     :field public SSLFlags←32
-    :field public shared LocalDRC←''
+    :field public shared CongaRef←''
     :field public URL←''
     :field public Params←''
     :field public Headers←''
     :field public Priority←'NORMAL:!CTYPE-OPENPGP'
     :field public WaitTime←30
+    :field public shared LDRC
 
     ∇ r←Version
       :Access public shared
@@ -188,7 +197,7 @@
     ∇
 
 
-    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;rc;dyalog;FileSep;donetime;congaCopied;formContentType;ind;len;mode;obj;evt;dat
+    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;rc;dyalog;FileSep;donetime;congaCopied;formContentType;ind;len;mode;obj;evt;dat;ref;nc;ns;n;class
 ⍝ issue an HTTP command
 ⍝ certs - optional [X509Cert [SSLValidation [Priority]]]
 ⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/page[?query_string]]
@@ -205,28 +214,35 @@
       →0⍴⍨0∊⍴url ⍝ exit early if no URL
      
       congaCopied←0
-      :If 0∊⍴LocalDRC
-          :Select ⊃#.⎕NC'DRC'
+      :If 0∊⍴CongaRef
+          class←⊃⊃⎕CLASS ⎕THIS
+          ref nc←{1↑¨⍵{(×⍵)∘/¨⍺ ⍵}#.⎕NC ⍵}ns←'Conga' 'DRC'
+          :Select ⊃nc
           :Case 9
-              LDRC←#.DRC
+              LDRC←#⍎ref
           :Case 0
               FileSep←'/\'[1+'Win'≡3↑1⊃#.⎕WG'APLVersion']
               dyalog←{⍵,(-FileSep=¯1↑⍵)↓FileSep}2 ⎕NQ'.' 'GetEnvironment' 'DYALOG'
-              'DRC'⎕CY dyalog,'ws/conga' ⍝ runtime needs full workspace path
-              :If {0::1 ⋄ 0⊣⍎'DRC'}''
-                  ⎕←'*** Conga namespace DRC not found or defined'
+              :For n :In ns
+                  :Trap 0
+                      n class.⎕CY dyalog,'ws/conga'
+                      congaCopied←1
+                      :Leave
+                  :EndTrap
+              :EndFor
+              :If ~congaCopied
+                  ⎕←'*** Neither Conga nor DRC was found'
                   →0
               :EndIf
-              LDRC←DRC
-              congaCopied←1
+              LDRC←class⍎n
           :Else
-              ⎕←'*** Conga namespace DRC not found or defined'
+              ⎕←'*** Neither Conga nor DRC was found'
               →0
           :EndSelect
-      :ElseIf 9=⎕NC'LocalDRC'
-          LDRC←LocalDRC
+      :ElseIf 9=⎕NC'CongaRef'
+          LDRC←CongaRef
       :Else
-          LDRC←⍎⍕LocalDRC
+          LDRC←⍎⍕CongaRef
       :EndIf
      
       {}LDRC.Init''
@@ -399,11 +415,6 @@
       :EndIf
      
       {}LDRC.Close cmd
-     
-      :If congaCopied
-          {}LDRC.Close'.'
-          {0:: ⋄ LDRC.(⎕EX¨⍙naedfns)}'' ⍝ Conga 3.0 cleans up ⍙naedfns
-      :EndIf
     ∇
 
     NL←⎕UCS 13 10
@@ -475,7 +486,7 @@
           d←↑{((p-1)↑⍵)((p←⍵⍳':')↓⍵)}¨d
           d[;1]←lc¨d[;1]
           d[;2]←dlb¨d[;2]
-          r←(len+4) d
+          r←(len+4)d
       :EndIf
     ∇
 
