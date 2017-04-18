@@ -219,9 +219,9 @@
           :If 0∊⍴CongaRef
               class←⊃⊃⎕CLASS ⎕THIS
               ref nc←{1↑¨⍵{(×⍵)∘/¨⍺ ⍵}#.⎕NC ⍵}ns←'Conga' 'DRC'
-              :Select ⊃nc
+              :Select ⊃⌊nc
               :Case 9
-                  LDRC←#⍎ref
+                  LDRC←#⍎⊃ref
               :Case 0
                   FileSep←'/\'[1+'Win'≡3↑1⊃#.⎕WG'APLVersion']
                   dyalog←{⍵,(-FileSep=¯1↑⍵)↓FileSep}2 ⎕NQ'.' 'GetEnvironment' 'DYALOG'
