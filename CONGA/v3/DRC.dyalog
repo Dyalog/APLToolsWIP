@@ -69,7 +69,7 @@
     ∇ MakeN arg;rootname;z;s
       :Access public
       :Implements Constructor
-      ∘∘∘
+     
       :Trap 0
           lcase←0∘(819⌶)
           z←lcase'A' ⍝ Try to use it
@@ -77,8 +77,11 @@
           lowerAlphabet←'abcdefghijklmnopqrstuvwxyzáâãçèêëìíîïðòóôõùúûýàäåæéñöøü'
           upperAlphabet←'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÂÃÇÈÊËÌÍÎÏÐÒÓÔÕÙÚÛÝÀÄÅÆÉÑÖØÜ'
           fromto←{n←⍴1⊃(t f)←⍺ ⋄ ~∨/b←n≥i←f⍳s←,⍵:s ⋄ (b/s)←t[b/i] ⋄ (⍴⍵)⍴s} ⍝ from-to casing fn
-          lcase←lowerAlphabet upperAlphabet∘fromto ⍝ :Includable Lower-casification of simple array
+          lc←lowerAlphabet upperAlphabet∘fromto ⍝ :Includable Lower-casification of simple array
+          lcase←{2=≡⍵:∇¨⍵ ⋄ lc ⍵}
       :EndTrap
+     
+      ncase←{(lcase ⍺)⍺⍺(lcase ⍵)} ⍝ case-insensitive operator
      
       (LibPath RootName)←2↑arg
      

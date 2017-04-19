@@ -38,6 +38,7 @@
          :If 0 check⊃ret←iConga.Send clt data
              →fail because'Clt Send failed: ',,⍕ret ⋄ :EndIf
          :If (0 'Connect' 0)check(⊂1 3 4)⌷4↑ret←iConga.Wait srv maxwait
+             ∘∘∘
              →fail because'Srv Wait did not produce a Connect event: ',,⍕ret ⋄ :EndIf
 
          con←2⊃ret ⍝ Server-side connection name

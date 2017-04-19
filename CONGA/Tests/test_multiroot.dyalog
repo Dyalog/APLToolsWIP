@@ -28,8 +28,9 @@
      →fail⊣r←'Wait for Clt.Block/BlockLast failed: ',,⍕c ⋄ :EndIf
  :If (4⊃ret)≢⌽data
      →fail⊣r←'Data not faithfully returned' ⋄ :EndIf
- :If (,⊂'S1')≡iConga.Names '.'
- ...
+ :If (,⊂'S1')≢iConga.Names'.'
+ :OrIf (,⊂'C1')≢iC2.Names'.'
+     →fail⊣r←'Roots did not contain expected names'
  :EndIf
 
 fail:

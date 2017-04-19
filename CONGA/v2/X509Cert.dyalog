@@ -353,7 +353,7 @@
               d←(d∊base64)/d
                   ⍝d←tochar base64 Decode d
               d←base64 Decode d
-              certs,←⎕NEW X509Cert(d('DER'filename))
+              certs,←LDRC.⎕NEW X509Cert(d('DER'filename))
      
                   ⍝c.Origin←'DER' filename
                   ⍝certs,←c
@@ -361,7 +361,7 @@
       :Else
           cert←⎕NREAD tie 83 size 0
              ⍝ cert←⎕AV[⎕IO+256|cert+256]
-          certs,←⎕NEW X509Cert(cert('DER'filename))
+          certs,←LDRC.⎕NEW X509Cert(cert('DER'filename))
               ⍝c.Origin←'DER' filename
               ⍝certs,←c
       :EndIf
