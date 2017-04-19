@@ -5,13 +5,10 @@
     :Field Public RootName
 
       check←{
-          0≠⊃⍵:('DLL Error: ',##.Conga.Error ⊃⍵)⎕SIGNAL 999
+          0≠⊃⍵:('DLL Error: ',##.Conga.Error⊃⍵)⎕SIGNAL 999
           0≠⊃2⊃⍵:(##.Conga.Error⊃2⊃⍵),1↓2⊃⍵
           2=⍴⍵:(⎕IO+1)⊃⍵
           1↓⍵}
-   
-    lcase←0∘(819⌶)                    ⍝ Lower-casification
-    ncase ←{(lcase ⍺) ⍺⍺ lcase ⍵ }    ⍝ Case-insensitive operator
 
     ∇ r←arg getargix(args list);mn;mp;ixs;nix
       ⍝ Finds argumenst in a list of positional and named arguments
@@ -72,6 +69,16 @@
     ∇ MakeN arg;rootname;z;s
       :Access public
       :Implements Constructor
+      ∘∘∘
+      :Trap 0
+          lcase←0∘(819⌶)
+          z←lcase'A' ⍝ Try to use it
+      :Else
+          lowerAlphabet←'abcdefghijklmnopqrstuvwxyzáâãçèêëìíîïðòóôõùúûýàäåæéñöøü'
+          upperAlphabet←'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÂÃÇÈÊËÌÍÎÏÐÒÓÔÕÙÚÛÝÀÄÅÆÉÑÖØÜ'
+          fromto←{n←⍴1⊃(t f)←⍺ ⋄ ~∨/b←n≥i←f⍳s←,⍵:s ⋄ (b/s)←t[b/i] ⋄ (⍴⍵)⍴s} ⍝ from-to casing fn
+          lcase←lowerAlphabet upperAlphabet∘fromto ⍝ :Includable Lower-casification of simple array
+      :EndTrap
      
       (LibPath RootName)←2↑arg
      
@@ -105,7 +112,7 @@
     ∇ UnMake
       :Implements Destructor
       :Trap 0
-      _←Close'.'
+          _←Close'.'
       :EndTrap
     ∇
 
@@ -170,7 +177,7 @@
     ∇ r←Close con;_
       :Access Public
      ⍝ arg:  Connection id
-      
+     
       r←check ##.Conga.⍙CallR RootName'AClose'con 0
  ⍝     :If ((,'.')≡,con)∧(0<⎕NC'⍙naedfns')  ⍝ Close root and unload share lib
  ⍝         _←⎕EX¨⍙naedfns

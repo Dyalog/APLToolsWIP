@@ -1,6 +1,19 @@
 ﻿ r←{reset}Init path;dllname;z;Path;ZSetHeader;unicode;bit64;filename;Paths;win;s;dirsep;mac;rootarg;n
  ⍝ Initialize Conga v3.0.0 (v2.x compatibility namespace)
 
+ unicode←⊃80=⎕DR' '
+ :Trap 0
+     lc←0∘(819⌶)
+     z←lc'A' ⍝ Try to use it
+ :Else
+     lowerAlphabet←'abcdefghijklmnopqrstuvwxyzáâãçèêëìíîïðòóôõùúûýàäåæéñöøü'
+     upperAlphabet←'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÂÃÇÈÊËÌÍÎÏÐÒÓÔÕÙÚÛÝÀÄÅÆÉÑÖØÜ'
+     fromto←{n←⍴1⊃(t f)←⍺ ⋄ ~∨/b←n≥i←f⍳s←,⍵:s ⋄ (b/s)←t[b/i] ⋄ (⍴⍵)⍴s} ⍝ from-to casing fn
+     lc←lowerAlphabet upperAlphabet∘fromto ⍝ :Includable Lower-casification of simple array
+ :EndTrap
+
+ ncase←{(lc ⍺)⍺⍺(lc ⍵)} ⍝ case-insensitive operator
+
  :If 2=⎕NC'reset' ⋄ :AndIf 2=⎕NC'⍙naedfns' ⋄ :AndIf reset=¯1    ⍝ Reload the dll
      {}Close'.'
  :EndIf
@@ -19,7 +32,6 @@
 
  :Else ⍝ Not loaded
      {}⎕WA  ⍝ If there is garbage holding the shared library loaded get rid of it
-     unicode←⊃80=⎕DR' '
      mac win bit64←∨/¨'Mac' 'Windows' '64'⍷¨⊂1⊃'.'⎕WG'APLVersion'
      ⍝ Dllname is Conga[x64 if 64-bit][Uni if Unicode][.so if UNIX]
      filename←'conga30',(⊃'__CU'[⎕IO+unicode]),(⊃('32' '64')[⎕IO+bit64]),⊃('' '.so' '.dylib')[⎕IO+mac+~win]

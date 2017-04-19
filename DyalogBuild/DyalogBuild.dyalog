@@ -7,7 +7,6 @@
     split←{{(+/∧\⍵∊' ')↓⍵}¨1↓¨{(⍵=⊃⍵)⊂⍵}⍺,⍵} ⍝ Split ⍵ on ⍺, and remove leading blanks from each segment
     getparam←{⍺←'' ⋄ (⌊/names⍳eis ⍵)⊃values,⊂⍺} ⍝ Get value of parameter
     getnumparam←{⍺←⊣ ⋄⊃2⊃⎕VFI ⍺ getparam ⍵}  ⍝ Get numeric parameter (0 if not set)
-    lc←0∘(819⌶) ⋄ uc←1∘(819⌶)                ⍝ lower & upper case
     null←0                                   ⍝ UCMD switch not specified
 
   ⍝ test "DSL" functions
@@ -42,7 +41,7 @@
       r←(2⊃⎕SI),'[',(⍕2⊃⎕LC),']: ',msg
     ∇
 
-    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent
+    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
      
@@ -78,7 +77,7 @@
               :EndIf
      
               :If 1=type
-                  files←⊃0(⎕NINFO⍠1)f,'/*.dyalog'
+                  files←⊃0(⎕NINFO⍠    1)f,'/*.dyalog'
                   ns←⎕NS''
                   :For f :In files
                   ⍝ z←ns.⎕FIX 'file://',f ⍝ /// source updates not working
@@ -122,7 +121,7 @@
               fns←(~m)/fns
           :EndIf
       :Else ⍝ No functions selected - run all named test_*
-          fns←↓{⍵⌿⍨'test_'∧.=⍨5(↑⍤1)⍵}ns.⎕NL 3
+          fns←↓{⍵⌿⍨'test_'∧.=⍨5(↑⍤    1)⍵}ns.⎕NL 3
       :EndIf
      
       setups←{1↓¨(⍵=⊃⍵)⊂⍵}' ',args.setup
@@ -137,13 +136,16 @@
               start←⎕AI[3]
               LOGS←''
               :If verbose∧1<≢setups ⋄ r,←⊂'For setup = ',setup ⋄ :EndIf
+              setupok←0
               :If null≢f←setup
                   :If 3=ns.⎕NC f ⍝ function is there
                       :If verbose ⋄ 0 log'running setup: ',f ⋄ :EndIf
-                      f logtest(ns⍎f)⍬
+                      f logtest z←(ns⍎f)⍬ 
+                      setupok←0=≢z    
                   :Else ⋄ logtest'-setup function not found: ',f
                   :EndIf
-              :EndIf
+              :EndIf             
+              :If ~setupok ⋄ :Continue ⋄ :EndIf
      
               :For f :In fns
                       steps+←1
@@ -278,14 +280,14 @@
               target←getparam'target'
      
               :If ⎕NEXISTS path,target
-                  :For f :In files←⊃0(⎕NINFO⍠1)path,target,'/*'
+                  :For f :In files←⊃0(⎕NINFO⍠    1)path,target,'/*'
                       ⎕NDELETE f
                   :EndFor
               :Else
                   2 ⎕MKDIR path,target ⍝ /// needs error trapping
               :EndIf
      
-              :If 0=≢files←⊃0(⎕NINFO⍠1)path,source
+              :If 0=≢files←⊃0(⎕NINFO⍠    1)path,source
                   logerror'No files found to copy in ":',path,source,'"'
               :Else
                   :For f :In files
@@ -294,7 +296,7 @@
                       {}⎕CMD cmd
                   :EndFor
               :EndIf
-              :If (n←≢files)≠tmp←≢⊃0(⎕NINFO⍠1)path,target,'/*'
+              :If (n←≢files)≠tmp←≢⊃0(⎕NINFO⍠    1)path,target,'/*'
                   logerror(⍕n),' expected, but ',(⍕tmp),' files ended up in "',target,'"'
               :Else
                   log(⍕n),' file',((n≠1)/'s'),' copied from "',source,'" to "',target,'"'
@@ -451,7 +453,10 @@
 
     ∇ Û←Run(Ûcmd Ûargs);file
      ⍝ Run a build
-     
+      
+      lc←{2=≡⍵: ∇¨⍵ ⋄ ⎕SE.Dyalog.Utils.lcase ⍵}     ⍝ lower case 
+      uc←{2=≡⍵: ∇¨⍵ ⋄ ⎕SE.Dyalog.Utils.ucase ⍵}     ⍝ upper case 
+
       :Select Ûcmd
       :Case 'Build'
           Û←DoBuild Ûargs
@@ -465,22 +470,25 @@
 
     ∇ r←level Help Cmd
       (1↑Cmd)←⎕SE.Dyalog.Utils.ucase 1↑Cmd
+
       :If 'Build'≡Cmd
           r←⊂'Runs one or more DyalogBuild scripts'
           :If 0=level
               r,←⊂'Args: filenames [-production]]'
           :Else
-              r,←'' 'Argument is name of a .dyalogbuild file'
-              r,←'' '-production will remove links to source files' '-clear[=ncs] will expunge all objects, or objects of specified nameclasses'
-          :EndIf
+              r,←'' 'filenames     is the name of a .dyalogbuild file' ''
+              r,←⊂'-production   will remove links to source files' 
+              r,←⊂'-clear[=ncs]  will expunge all objects, or objects of specified nameclasses'
+          :EndIf                              
+
       :ElseIf 'Test'≡Cmd
           r←⊂'Run a selection of functions named test_* from a namespace or folder'
           :If 0=level
               r,←⊂'Args: ns-or-folder [-filter=string] [-setup=fn] [-teardown=fn]]'
           :Else
               r,←'' 'Argument is the name of a namespace in the current workspace, or'
-              r,←'         the name of a .dyalog file containing a namespace, or'
-              r,←'         the name of a folder containing functions in .dyalog format'
+              r,←⊂'         the name of a .dyalog file containing a namespace, or'
+              r,←⊂'         the name of a folder containing functions in .dyalog format'
               r,←'' '-suite=filename  will run tests defined by a .dyalogtest file'
               r,←⊂'-filter=string   will only run functions where string is found in the leading ⍝Test: comment'
               r,←⊂'-setup=fnname    will run fnname before any tests'
@@ -489,7 +497,8 @@
               r,←⊂'-repeat=n        repeat test n times'
               r,←⊂'-verbose         chatty mode while running'
               r,←⊂'-silent          qa mode: only output actual errors'
-          :EndIf
+          :EndIf          
+
       :Else
           r←'Internal error: no help available for ',Cmd
       :EndIf

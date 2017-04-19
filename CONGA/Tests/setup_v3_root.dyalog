@@ -1,5 +1,11 @@
-﻿r←setup_v3_root dummy
+﻿ r←setup_v3_root dummy
 ⍝ Setup test using v3 DRC
-Conga←#.Conga
-iConga←Conga.Init 'TEST'
-r←verify_empty iConga
+ Conga←#.Conga
+
+ :Trap 0
+     iConga←Conga.Init'TEST'
+ :Else
+     →0⊣r←'Conga.Init failed: ',⊃⎕DMX.DM
+ :EndTrap
+
+ r←verify_empty iConga
