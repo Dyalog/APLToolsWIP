@@ -3,7 +3,7 @@
  Conga←#.Conga
 
  :Trap 0
-     iConga←Conga.Init'TEST'
+     iConga←('CONGALIB'{0=#.⎕NC ⍺:⍵ ⋄ ⍎'#.',⍺}'')Conga.Init'TEST'
  :Else
      →0⊣r←'Conga.Init failed: ',⊃⎕DMX.DM
  :EndTrap

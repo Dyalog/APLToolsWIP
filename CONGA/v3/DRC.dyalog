@@ -88,12 +88,10 @@
       :If 3=##.Conga.⎕NC'⍙InitRPC'
           z←##.Conga.⍙InitRPC RootName LibPath
           :Select ⊃z
-          :Case 1091
+          :Case 0
               :If 80≠⎕DR' '
                   s←##.Conga.(SetXlate DefaultXlate)
-              :EndIf
-          :Case 1043
-     
+              :EndIf    
           :Else
               (##.Conga.Error z)⎕SIGNAL 999
           :EndSelect

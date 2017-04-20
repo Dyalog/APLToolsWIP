@@ -74,11 +74,10 @@
          ⍙naedfns,←⊂'⍙InitRPC'⎕NA dllname,'Init <0T1 <0T1'
 
          z←⍙InitRPC RootName Path
-         :If 1091=⊃z
+         :If 0=⊃z
              :If ~unicode
                  s←SetXlate DefaultXlate
              :EndIf
-             s←' using default translation aplunicd.ini not present'
              r←,0
          :Else
              r←Error z
