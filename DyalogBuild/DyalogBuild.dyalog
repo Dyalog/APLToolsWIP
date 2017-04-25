@@ -32,7 +32,6 @@
       :If r←expect≢got
           ⎕←'expect≢got:'
           ⎕←(2⊃⎕SI),'[',(⍕2⊃⎕LC),'] ',(1+2⊃⎕LC)⊃⎕NR 2⊃⎕SI
-          ∘∘∘
       :EndIf
     ∇
 
@@ -44,7 +43,7 @@
     ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
-     
+      
       WIN←'W'=⊃⊃'.'⎕WG'APLVersion'
       DYALOG←2 ⎕NQ'.' 'GetEnvironment' 'DYALOG'
       WSFOLDER←⊃⎕NPARTS ⎕WSID
@@ -77,7 +76,7 @@
               :EndIf
      
               :If 1=type
-                  files←⊃0(⎕NINFO⍠    1)f,'/*.dyalog'
+                  files←⊃0(⎕NINFO⍠     1)f,'/*.dyalog'
                   ns←⎕NS''
                   :For f :In files
                   ⍝ z←ns.⎕FIX 'file://',f ⍝ /// source updates not working
@@ -121,7 +120,7 @@
               fns←(~m)/fns
           :EndIf
       :Else ⍝ No functions selected - run all named test_*
-          fns←↓{⍵⌿⍨'test_'∧.=⍨5(↑⍤    1)⍵}ns.⎕NL 3
+          fns←↓{⍵⌿⍨'test_'∧.=⍨5(↑⍤     1)⍵}ns.⎕NL 3
       :EndIf
      
       setups←{1↓¨(⍵=⊃⍵)⊂⍵}' ',args.setup
@@ -280,14 +279,14 @@
               target←getparam'target'
      
               :If ⎕NEXISTS path,target
-                  :For f :In files←⊃0(⎕NINFO⍠    1)path,target,'/*'
+                  :For f :In files←⊃0(⎕NINFO⍠     1)path,target,'/*'
                       ⎕NDELETE f
                   :EndFor
               :Else
                   2 ⎕MKDIR path,target ⍝ /// needs error trapping
               :EndIf
      
-              :If 0=≢files←⊃0(⎕NINFO⍠    1)path,source
+              :If 0=≢files←⊃0(⎕NINFO⍠     1)path,source
                   logerror'No files found to copy in ":',path,source,'"'
               :Else
                   :For f :In files
@@ -296,7 +295,7 @@
                       {}⎕CMD cmd
                   :EndFor
               :EndIf
-              :If (n←≢files)≠tmp←≢⊃0(⎕NINFO⍠    1)path,target,'/*'
+              :If (n←≢files)≠tmp←≢⊃0(⎕NINFO⍠     1)path,target,'/*'
                   logerror(⍕n),' expected, but ',(⍕tmp),' files ended up in "',target,'"'
               :Else
                   log(⍕n),' file',((n≠1)/'s'),' copied from "',source,'" to "',target,'"'

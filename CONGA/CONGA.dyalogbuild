@@ -2,7 +2,7 @@ DyalogBuild: 0.1
 ID         : CONGA, Version=3.0
 Description: Conga workspace for Dyalog v16.0
 Defaults   : ⎕IO←⎕ML←1
-TARGET     : distribution/ws/conga.dws
+TARGET     : Distribution/ws/conga.dws
 
 EXEC  : ⎕EX '#.DRC' '#.Conga'
 
@@ -22,8 +22,9 @@ Class : v3/X509Cert.dyalog, Target=Conga
 CSV   : Common/ErrorTable.csv, ColTypes=2 1 1, Target=Conga.ErrorTable
 CSV   : Common/ErrorTable.csv, ColTypes=2 1 1, Target=DRC.ErrorTable
 
-COPY  : v3/Samples/Certificates/*, Target=distribution/apllib/conga/Certificates
-COPY  : v3/Samples/HttpServers/*, Target=distribution/apllib/conga/HttpServers
-COPY  : v3/Samples/RPCServices/*, Target=distribution/apllib/conga/RPCServices
+COPY  : Samples/CertTool/*, Target=Distribution/Samples/Conga/CertTool
+COPY  : Samples/HttpServers/*, Target=Distribution/Samples/Conga/HttpServers
+COPY  : Samples/RPCServices/*, Target=Distribution/Samples/Conga/RPCServices
+COPY  : Library/*, Target=Distribution/Library
 
 LX    : ⎕←'This is the Conga v3.0 workspace.'
