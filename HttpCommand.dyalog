@@ -221,7 +221,11 @@
               ref nc←{1↑¨⍵{(×⍵)∘/¨⍺ ⍵}#.⎕NC ⍵}ns←'Conga' 'DRC'
               :Select ⊃⌊nc
               :Case 9
-                  LDRC←#⍎⊃ref
+                  :If ref≡,⊂'Conga' 
+                       LDRC←#.Conga.Init ''
+                  :Else 
+                       LDRC←#⍎⊃ref ⋄ {}LDRC.Init ''
+                  :EndIf
               :Case 0
                   FileSep←'/\'[1+'Win'≡3↑1⊃#.⎕WG'APLVersion']
                   dyalog←{⍵,(-FileSep=¯1↑⍵)↓FileSep}2 ⎕NQ'.' 'GetEnvironment' 'DYALOG'
@@ -245,8 +249,7 @@
               LDRC←CongaRef
           :Else
               LDRC←⍎⍕CongaRef
-          :EndIf
-          {}LDRC.Init''
+          :EndIf             
       :EndIf
      
       url←,url
@@ -388,8 +391,9 @@
               :If 0=err
                   :Trap 0 ⍝ If any errors occur, abandon conversion
                       :Select header Lookup'content-encoding' ⍝ was the response compressed?
-                      :Case 'deflate'
-                          data←fromutf8 LDRC.flate.Inflate 120 156{(2×⍺≡2↑⍵)↓⍺,⍵}256|83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
+                      :Case 'deflate'               
+                          data←120 ¯100{(2×⍺≡2↑⍵)↓⍺,⍵}83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
+                          data←fromutf8 256|¯2(219⌶) data
                       :Case 'gzip'
                           data←fromutf8 256|¯3(219⌶)83 ⎕DR data
                       :Else
