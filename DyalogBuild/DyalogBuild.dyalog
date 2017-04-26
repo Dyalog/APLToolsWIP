@@ -15,7 +15,7 @@
     ⍝ Primitive ⎕CSV for pre-v16
     ⍝ No validation, no options
      
-      :Trap 2 ⍝ Syntax Error
+      :Trap 2 ⍝ Syntax Error if ⎕CSV not available
           r←⎕CSV args
       :Else
           (file encoding coltypes)←args
@@ -32,6 +32,7 @@
       :If r←expect≢got
           ⎕←'expect≢got:'
           ⎕←(2⊃⎕SI),'[',(⍕2⊃⎕LC),'] ',(1+2⊃⎕LC)⊃⎕NR 2⊃⎕SI
+          :If ##.crash ⋄ ∘∘∘ ⋄ :EndIf
       :EndIf
     ∇
 
@@ -40,7 +41,7 @@
       r←(2⊃⎕SI),'[',(⍕2⊃⎕LC),']: ',msg
     ∇
 
-    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok;t
+    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok;t;trace
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
      
@@ -49,7 +50,7 @@
       WSFOLDER←⊃⎕NPARTS ⎕WSID
      
       LOGS←''
-      (verbose filter crash silent)←args.(verbose filter crash silent)
+      (verbose filter crash silent trace)←args.(verbose filter crash silent trace)
       :If null≢repeat←args.repeat
           repeat←⊃2⊃⎕VFI repeat
       :EndIf
@@ -121,6 +122,12 @@
           :EndIf
       :Else ⍝ No functions selected - run all named test_*
           fns←↓{⍵⌿⍨'test_'∧.=⍨5(↑⍤1)⍵}ns.⎕NL 3
+      :EndIf    
+      
+      :If null≢filter
+      :AndIf 0=≢fns←(1∊¨filter∘⍷¨fns)/fns
+          0 log '*** no functions match filter "',filter,'"'
+          →fail⊣r←LOGS
       :EndIf
      
       setups←{1↓¨(⍵=⊃⍵)⊂⍵}' ',args.setup
@@ -138,7 +145,7 @@
               setupok←0
               :If null≢f←setup
                   :If 3=ns.⎕NC f ⍝ function is there
-                      :If verbose ⋄ 0 log'running setup: ',f ⋄ :EndIf
+                      :If verbose ⋄ 0 log'running setup: ',f ⋄ :EndIf    
                       f logtest z←(ns⍎f)⍬
                       setupok←0=≢z
                   :Else ⋄ logtest'-setup function not found: ',f
@@ -149,7 +156,8 @@
      
               :For f :In fns
                   steps+←1
-                  :If verbose ⋄ 0 log'running: ',f ⋄ :EndIf
+                  :If verbose ⋄ 0 log'running: ',f ⋄ :EndIf   
+                  (trace/1)ns.⎕STOP f
                   f logtest(ns⍎f)⍬    
               :EndFor
      
@@ -233,7 +241,7 @@
       i←0 ⍝ we are on "line zero" if any logging happens
      
       file←1⊃args.Arguments
-      prod←args.production
+      prod←args.production 
       DoClear args.clear
      
       (exists file)←OpenFile file
@@ -448,7 +456,7 @@
       r[1].Desc←'Execute a DyalogBuild file'
       r[1].Parse←'1S -production -clear[=]'
       r[2].Desc←'Run tests from a namespace or folder'
-      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -silent -crash -repeat='
+      r[2].Parse←'1S -filter= -setup= -teardown= -suite= -verbose -silent -crash -trace -repeat='
     ∇
 
     ∇ Û←Run(Ûcmd Ûargs);file
@@ -467,7 +475,7 @@
           Û←0 0⍴''
       :EndSelect
     ∇
-
+       
     ∇ r←level Help Cmd
       (1↑Cmd)←⎕SE.Dyalog.Utils.ucase 1↑Cmd
      
@@ -494,6 +502,7 @@
               r,←⊂'-setup=fnname    will run fnname before any tests'
               r,←⊂'-teardown=fnname will run fnname after all tests'
               r,←⊂'-crash           to crash on error, rather than log and continue'
+              r,←⊂'-trace           set stop on line 1 of each test function'
               r,←⊂'-repeat=n        repeat test n times'
               r,←⊂'-verbose         chatty mode while running'
               r,←⊂'-silent          qa mode: only output actual errors'
