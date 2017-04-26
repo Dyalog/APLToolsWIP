@@ -1,7 +1,8 @@
 ﻿ r←setup_v3 dummy
 ⍝ Setup test using v3 DRC
- Conga←#.Conga
+⍝ Set #.CONGALIB to point to non-default Conga DLLs
 
+ Conga←#.Conga
  :Trap 0
      iConga←('CONGALIB'{0=#.⎕NC ⍺:⍵ ⋄ ⍎'#.',⍺}'')Conga.Init''
  :Else

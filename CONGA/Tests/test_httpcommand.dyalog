@@ -18,7 +18,7 @@
       :For test :In tests
           r,←{(0≠≢⍵)/⊂⍵}⍎test  
           :If 0≠⍴t←##.(verify_empty iConga)
-              r,←⊂'Following ',test,' (in TestAll): ',t
+              r,←⊂'Following ',test,': ',t
           :EndIf
       :EndFor              
     ∇

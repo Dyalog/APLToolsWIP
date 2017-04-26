@@ -1,5 +1,7 @@
 ﻿ r←setup_v3_root dummy
 ⍝ Setup test using v3 DRC
+⍝ Set #.CONGALIB to point to non-default Conga DLLs
+
  Conga←#.Conga
 
  :Trap 0
