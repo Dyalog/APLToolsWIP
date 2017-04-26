@@ -40,7 +40,7 @@
       r←(2⊃⎕SI),'[',(⍕2⊃⎕LC),']: ',msg
     ∇
 
-    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok
+    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok;t
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
       
@@ -76,7 +76,7 @@
               :EndIf
      
               :If 1=type
-                  files←⊃0(⎕NINFO⍠     1)f,'/*.dyalog'
+                  files←⊃0(⎕NINFO⍠1)f,'/*.dyalog'
                   ns←⎕NS''
                   :For f :In files
                   ⍝ z←ns.⎕FIX 'file://',f ⍝ /// source updates not working
@@ -143,13 +143,14 @@
                       setupok←0=≢z    
                   :Else ⋄ logtest'-setup function not found: ',f
                   :EndIf
-              :EndIf             
-              :If ~setupok ⋄ :Continue ⋄ :EndIf
+              :EndIf 
+                          
+              →setupok↓END
      
               :For f :In fns
                       steps+←1
                       :If verbose ⋄ 0 log'running: ',f ⋄ :EndIf
-                      f logtest(ns⍎f)⍬
+                      f logtest(ns⍎f)⍬  
               :EndFor
      
               :If null≢f←args.teardown
@@ -421,7 +422,7 @@
       →(0=⍴msg)⍴0
       :If 2=⎕NC'f' ⋄ msg←f,': ',msg ⋄ :EndIf
       :If verbose ⋄ ⎕←msg ⋄ :EndIf
-      LOGS,←⊂msg
+      LOGS,←eis msg
     ∇
 
     ∇ {pre}log msg

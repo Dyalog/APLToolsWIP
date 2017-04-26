@@ -391,8 +391,9 @@
               :If 0=err
                   :Trap 0 ⍝ If any errors occur, abandon conversion
                       :Select header Lookup'content-encoding' ⍝ was the response compressed?
-                      :Case 'deflate'
-                          data←fromutf8 LDRC.flate.Inflate 120 156{(2×⍺≡2↑⍵)↓⍺,⍵}256|83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
+                      :Case 'deflate'               
+                          data←120 ¯100{(2×⍺≡2↑⍵)↓⍺,⍵}83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
+                          data←fromutf8 256|¯2(219⌶) data
                       :Case 'gzip'
                           data←fromutf8 256|¯3(219⌶)83 ⎕DR data
                       :Else

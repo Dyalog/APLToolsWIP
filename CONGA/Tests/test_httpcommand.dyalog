@@ -12,19 +12,21 @@
 
     _true←⊂'true'
 
-    ∇ {r}←TestAll;tests;test                
+    ∇ {r}←TestAll dummy;tests;test;t                
       tests←(⊂'TestAll')~⍨tests/⍨{'Test'≡4↑⍵}¨tests←⎕NL ¯3
       r←⍬
       :For test :In tests
-          r,←{(0≠≢⍵)/⊂⍵}⍎test
-      :EndFor
+          r,←{(0≠≢⍵)/⊂⍵}⍎test  
+          :If 0≠⍴t←##.(verify_empty iConga)
+              r,←⊂'Following ',test,' (in TestAll): ',t
+          :EndIf
+      :EndFor              
     ∇
 
     ∇ {r}←TestGet;rc
       r←''
       :If 0 200 ##.check rc←(HttpCommand.Get _httpbin,'/get').(rc HttpStatus)
           r←'HTTP Get Basic failed: ',⍕rc 
-          ∘∘∘
       :EndIf
     ∇
 
