@@ -54,12 +54,16 @@
       :EndTrap
     ∇
 
-    ∇ {r}←TestChunked;result
+    ∇ {r}←TestChunked;result;z
       r←''
       result←HttpCommand.Get'https://www.httpwatch.com/httpgallery/chunked/chunkedimage.aspx'
       :If 0 200 'chunked' ##.check result.(rc HttpStatus),⊂result.Headers HttpCommand.Lookup'transfer-encoding'
-        r←'HTTP GET chunked FILED' 
+        r←'HTTP GET chunked FAILED' 
       :EndIf      
+      :If ~1∊'httpwatch.com'⍷z←result.(⊃PeerCert).Formatted.Subject
+          r←'Certificate Subject does not include httpwatch.com: ',z
+      :EndIf      
+
     ∇
 
     ∇ {r}←TestRestfulGet;host;rc

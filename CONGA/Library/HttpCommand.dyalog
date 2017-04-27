@@ -197,7 +197,7 @@
     ∇
 
 
-    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;rc;dyalog;FileSep;donetime;congaCopied;formContentType;ind;len;mode;obj;evt;dat;ref;nc;ns;n;class;clt
+    ∇ r←{certs}(cmd HttpCmd)args;url;parms;hdrs;urlparms;p;b;secure;port;host;page;x509;flags;priority;pars;auth;req;err;chunked;chunk;buffer;chunklength;done;data;datalen;header;headerlen;rc;dyalog;FileSep;donetime;congaCopied;formContentType;ind;len;mode;obj;evt;dat;ref;nc;ns;n;class;clt;z
 ⍝ issue an HTTP command
 ⍝ certs - optional [X509Cert [SSLValidation [Priority]]]
 ⍝ args  - [1] URL in format [HTTP[S]://][user:pass@]url[:port][/page[?query_string]]
@@ -221,10 +221,10 @@
               ref nc←{1↑¨⍵{(×⍵)∘/¨⍺ ⍵}#.⎕NC ⍵}ns←'Conga' 'DRC'
               :Select ⊃⌊nc
               :Case 9
-                  :If ref≡,⊂'Conga' 
-                       LDRC←#.Conga.Init ''
-                  :Else 
-                       LDRC←#⍎⊃ref ⋄ {}LDRC.Init ''
+                  :If ref≡,⊂'Conga'
+                      LDRC←#.Conga.Init''
+                  :Else
+                      LDRC←#⍎⊃ref ⋄ {}LDRC.Init''
                   :EndIf
               :Case 0
                   FileSep←'/\'[1+'Win'≡3↑1⊃#.⎕WG'APLVersion']
@@ -249,7 +249,7 @@
               LDRC←CongaRef
           :Else
               LDRC←⍎⍕CongaRef
-          :EndIf             
+          :EndIf
       :EndIf
      
       url←,url
@@ -391,9 +391,9 @@
               :If 0=err
                   :Trap 0 ⍝ If any errors occur, abandon conversion
                       :Select header Lookup'content-encoding' ⍝ was the response compressed?
-                      :Case 'deflate'               
+                      :Case 'deflate'
                           data←120 ¯100{(2×⍺≡2↑⍵)↓⍺,⍵}83 ⎕DR data ⍝ append 120 156 signature because web servers strip it out due to IE
-                          data←fromutf8 256|¯2(219⌶) data
+                          data←fromutf8 256|¯2(219⌶)data
                       :Case 'gzip'
                           data←fromutf8 256|¯3(219⌶)83 ⎕DR data
                       :Else
@@ -416,7 +416,10 @@
                   r.HttpStatus←toNum r.HttpStatus
                   header↓⍨←1
      
-                  :If secure ⋄ r.PeerCert←⊂LDRC.GetProp clt'PeerCert' ⋄ :EndIf
+                  :If secure
+                  :AndIf 0=⊃z←LDRC.GetProp clt'PeerCert'
+                      r.PeerCert←2⊃z
+                  :EndIf
               :EndIf
      
               r.(Headers Data)←header data
