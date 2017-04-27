@@ -66,8 +66,17 @@
       r←##.Conga.X509Cert
     ∇
 
+    ∇ vc←SetParents vc;ix;m        
+      :Access Public Instance
+      ix←vc.Elements.Subject⍳vc.Elements.Issuer  ⍝ find the index of the parents
+      :If ∨/m←(ix≤⍴vc)∧ix≠⍳⍴ix                   ⍝ Mask the found items with parents and not selfsigned
+          (m/vc).ParentCert←vc[m/ix]             ⍝ Set the parent
+      :EndIf                                     ⍝ NB the :If prevents creation of an empty cert to allow above line to work
+      vc←vc~vc.ParentCert                        ⍝ remove all parents from list
+    ∇
+
     ∇ MakeN arg;rootname;z;s
-      :Access public
+      :Access Public
       :Implements Constructor
      
       :Trap 0
@@ -91,7 +100,7 @@
           :Case 0
               :If 80≠⎕DR' '
                   s←##.Conga.(SetXlate DefaultXlate)
-              :EndIf    
+              :EndIf
           :Else
               (##.Conga.Error z)⎕SIGNAL 999
           :EndSelect
@@ -306,7 +315,7 @@
       :If 0=⊃r
       :AndIf ∨/'OwnCert' 'PeerCert'∊a[2]
       :AndIf 0<⊃⍴2⊃r
-          (2⊃r)←SetParentCerts ##.⎕NEW¨X509Cert,∘⊂¨⎕THIS,¨⊂¨2⊃r
+          (2⊃r)←SetParentCerts{##.⎕NEW X509Cert(,⊂⍵)}¨2⊃r
       :EndIf
     ∇
 
