@@ -276,8 +276,7 @@
       _usemsstoreapi←0
       _CertOrigin←certorigin
       _KeyOrigin←keyorigin
-      DRC←DRCref
-     
+      DRC←DRCref     
     ∇
 
     ∇ r←base Decode code;ix;bits;size;s
@@ -298,7 +297,7 @@
       certurls←DRC.Certs'Urls' ''
       :If 0=1⊃certurls
       :AndIf 0<1⊃⍴2⊃certurls
-          certs←{#.⎕NEW X509Cert(DRC(4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
+          certs←{LDRC.⎕NEW X509Cert(DRC(4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
       :Else
           certs←⍬
       :EndIf
@@ -311,7 +310,7 @@
       cs←DRC.Certs'MSStore'storename
       :If 0=1⊃cs
       :AndIf 0<⍴2⊃cs
-          certs←#.⎕NEW¨(2⊃cs){X509Cert(DRC ⍺ ⍵)}¨⊂'MSStore'storename
+          certs←LDRC.⎕NEW¨(2⊃cs){X509Cert(DRC ⍺ ⍵)}¨⊂'MSStore'storename
       :Else
           certs←⍬
       :EndIf
@@ -347,7 +346,7 @@
               d←(d∊base64)/d
                   ⍝d←tochar base64 Decode d
               d←base64 Decode d
-              certs,←#.⎕NEW X509Cert(DRC d('DER'filename))
+              certs,←LDRC.⎕NEW X509Cert(DRC d('DER'filename))
      
                   ⍝c.Origin←'DER' filename
                   ⍝certs,←c
@@ -355,7 +354,7 @@
       :Else
           cert←⎕NREAD tie 83 size 0
              ⍝ cert←⎕AV[⎕IO+256|cert+256]
-          certs,←#.⎕NEW X509Cert(DRC cert('DER'filename))
+          certs,←LDRC.⎕NEW X509Cert(DRC cert('DER'filename))
               ⍝c.Origin←'DER' filename
               ⍝certs,←c
       :EndIf

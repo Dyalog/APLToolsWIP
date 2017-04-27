@@ -309,7 +309,7 @@
       certurls←LDRC.Certs'Urls' ''
       :If 0=1⊃certurls
       :AndIf 0<1⊃⍴2⊃certurls
-          certs←{⎕NEW X509Cert((4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
+          certs←{LDRC.⎕NEW X509Cert((4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
       :Else
           certs←⍬
       :EndIf
@@ -321,7 +321,7 @@
       cs←LDRC.Certs'MSStore'storename
       :If 0=1⊃cs
       :AndIf 0<⍴2⊃cs
-          certs←⎕NEW¨(2⊃cs){X509Cert(⍺ ⍵)}¨⊂'MSStore'storename
+          certs←LDRC.⎕NEW¨(2⊃cs){X509Cert(⍺ ⍵)}¨⊂'MSStore'storename
       :Else
           certs←⍬
       :EndIf
