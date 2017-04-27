@@ -214,6 +214,7 @@
      
           :Case 'setup'
               args.setup←getparam'fn' ''
+              args.setup←{1↓¯1↓⍵/⍨~'  '⍷⍵}' ',args.setup,' '
      
           :Case 'test'
               :If 0=⎕NC'args.tests' ⋄ args.tests←⍬ ⋄ :EndIf
