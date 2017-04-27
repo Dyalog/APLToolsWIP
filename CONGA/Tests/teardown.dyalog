@@ -12,3 +12,4 @@
          r←r,((0≠≢r)/' '),(⍕≢z),' instances of #.Conga.Client still exist.'
      :EndIf
  :EndIf
+ {}⎕EX'iConga'  ⍝ expunge the iConga used for the test
