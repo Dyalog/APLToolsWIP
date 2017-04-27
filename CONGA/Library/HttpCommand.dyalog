@@ -50,7 +50,7 @@
 ⍝               Content-Length : length of the request body
 ⍝               Accept-Encoding: gzip, deflate
 ⍝
-⍝   Cert     - if using a SSL, this is an instance of the X509Cert class (see Conga SSL documentation)
+⍝   Cert     - if using SSL, this is an instance of the X509Cert class (see Conga SSL documentation)
 ⍝
 ⍝   SSLFlags - if using SSL, these are the SSL flags as described in the Conga documentation
 ⍝
@@ -124,7 +124,7 @@
 ⍝ HttpCommand uses Conga for TCP/IP communications and supports both Conga 2 and Conga 3
 ⍝ Conga 2 uses the DRC namespace
 ⍝ Conga 3 uses either the Conga namespace or DRC namespace for backwards compatibility
-⍝ HttpCommand will search for #.Conga and #.DRC and use them if they exist
+⍝ HttpCommand will search for #.Conga and #.DRC and use them if they exist - or try to ⎕CY them if they do not
 ⍝ You can set the CongaRef public field to have HttpCommand use Conga or DRC located other than in the root of the workspace
 ⍝ Otherwise HttpCommand will attempt to copy Conga or DRC from the conga workspace supplied with Dyalog APL
 ⍝
@@ -155,7 +155,7 @@
 
     ∇ r←Version
       :Access public shared
-      r←'HttpCommand' '2.1.0' '2017-04-12'
+      r←'HttpCommand' '2.1.1' '2017-04-26'
     ∇
 
     ∇ make
