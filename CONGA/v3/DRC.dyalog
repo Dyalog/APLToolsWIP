@@ -66,7 +66,7 @@
       r←##.Conga.X509Cert
     ∇
 
-    ∇ vc←SetParents vc;ix;m        
+    ∇ vc←SetParents vc;ix;m
       :Access Public Instance
       ix←vc.Elements.Subject⍳vc.Elements.Issuer  ⍝ find the index of the parents
       :If ∨/m←(ix≤⍴vc)∧ix≠⍳⍴ix                   ⍝ Mask the found items with parents and not selfsigned
@@ -347,4 +347,98 @@
       r←(3↑⊃r),r[2],⊂(4⊃4↑⊃r),Micros
     ∇
 
-:endClass
+    ∇ certs←ReadCertFromFile filename;c;base64;tie;size;cert;ixs;ix;d;pc;temp
+      :Access Public Instance
+     
+      certs←⍬
+      c←'-----BEGIN X509 CERTIFICATE-----' '-----BEGIN CERTIFICATE-----'
+      base64←'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+      tie←filename ⎕NTIE 0
+      size←⎕NSIZE tie
+      cert←⎕NREAD tie 82 size
+      ixs←c{⊃,/{(⍳⍴⍵),¨¨⍵}⍺{(⍺⍷⍵)/⍳⍴⍵}¨⊂⍵}cert
+      :If 0<⍴ixs
+          :For ix :In ixs
+              d←((2⊃ix)+⍴⊃c[1⊃ix])↓cert
+              d←(¯1+⊃d⍳'-')↑d
+              d←(d∊base64)/d
+              d←base64 Decode d
+              certs,←⎕NEW X509Cert(d('DER'filename))
+          :EndFor
+      :Else
+          cert←⎕NREAD tie 83 size 0
+          certs,←⎕NEW X509Cert(cert('DER'filename))
+      :EndIf
+     
+      ⎕NUNTIE tie
+      certs←SetParents certs
+    ∇
+
+    ∇ certs←ReadCertFromFolder wildcardfilename;files;f;filelist
+      :Access Public Instance
+     
+      filelist←1 0(⎕NINFO⍠1)wildcardfilename
+      files←filelist[;1]
+      certs←⍬
+     
+      :For f :In files
+          certs,←ReadCertFromFile f
+      :EndFor
+    ∇
+
+    ∇ certs←ReadCertFromStore storename;cs
+      :Access Public Instance
+     
+      cs←Certs'MSStore'storename
+      :If 0=1⊃cs
+      :AndIf 0<⍴2⊃cs
+          certs←⎕NEW¨(2⊃cs){X509Cert(⍺ ⍵)}¨⊂'MSStore'storename
+      :Else
+          certs←⍬
+      :EndIf
+    ∇
+
+    ∇ certs←ReadCertUrls;certurls;list
+      :Access Public Instance
+     
+      certurls←Certs'Urls' ''
+      :If 0=1⊃certurls
+      :AndIf 0<1⊃⍴2⊃certurls
+          certs←{⎕NEW X509Cert((4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
+      :Else
+          certs←⍬
+      :EndIf
+    ∇
+
+    ∇ r←base Decode code;ix;bits;size;s
+      ix←¯1+base⍳code
+     
+      bits←,⍉((2⍟⍴base)⍴2)⊤ix
+      size←{(⌊(¯1+⍺+⊃⍴⍵)÷⍺),⍺}
+     
+      s←8 size bits
+     
+      r←(8⍴2)⊥⍉s⍴(×/s)↑bits
+      r←(-0=¯1↑r)↓r
+    ∇
+
+      base64←{⎕IO ⎕ML←0 1             ⍝ Base64 encoding and decoding as used in MIME.
+     
+          chars←'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+          bits←{,⍉(⍺⍴2)⊤⍵}                   ⍝ encode each element of ⍵ in ⍺ bits,
+                                       ⍝   and catenate them all together
+          part←{((⍴⍵)⍴⍺↑1)⊂⍵}                ⍝ partition ⍵ into chunks of length ⍺
+     
+          0=2|⎕DR ⍵:2∘⊥∘(8∘↑)¨8 part{(-8|⍴⍵)↓⍵}6 bits{(⍵≠64)/⍵}chars⍳⍵
+                                       ⍝ decode a string into octets
+     
+          four←{                             ⍝ use 4 characters to encode either
+              8=⍴⍵:'=='∇ ⍵,0 0 0 0           ⍝   1,
+              16=⍴⍵:'='∇ ⍵,0 0               ⍝   2
+              chars[2∘⊥¨6 part ⍵],⍺          ⍝   or 3 octets of input
+          }
+          cats←⊃∘(,/)∘((⊂'')∘,)              ⍝ catenate zero or more strings
+          cats''∘four¨24 part 8 bits ⍵
+      }
+
+:EndClass
