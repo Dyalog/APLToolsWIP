@@ -58,7 +58,7 @@
  res←iConga.Wait clt maxwait
  :If 0 'WSUpgrade'≡res[1 3]
     ⍝ Auto upgrade event 4⊃c is the Incomming request but connection have been upgraded
- :ElseIf 0 'WSResponce'≡res[1 3]
+ :ElseIf 0 'WSResponse'≡res[1 3]
     ⍝ Negotiate inspect headers and accept request with the extra headers you need.
      :If 0 check⊃ret←iConga.SetProp clt'WSAccept'((4⊃res)'')
          →fail because'SetProp failed: ',,⍕ret ⋄ :EndIf

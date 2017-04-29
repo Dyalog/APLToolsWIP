@@ -1045,8 +1045,8 @@
               wscon←2⊃c  ⍝ test
      
               c←#.DRC.Wait'C1' 1000
-        ⍝ returns WSUpgrade and 4⊃c is the peers accept headers, WSResponce 4⊃c is the same but you have to accept the upgrade.
-              :If 0 'WSResponce'≡c[1 3]
+        ⍝ returns WSUpgrade and 4⊃c is the peers accept headers, WSResponse 4⊃c is the same but you have to accept the upgrade.
+              :If 0 'WSResponse'≡c[1 3]
                   r∧←0 Assert⊃c1←#.DRC.SetProp(2⊃c)'WSAccept'((4⊃c)'')
               :EndIf
      
