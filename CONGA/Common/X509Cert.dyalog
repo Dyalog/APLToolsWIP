@@ -281,14 +281,13 @@
 
     ∇ ldrc←FindDRC dummy                 
     ⍝ Establish a pointer to a Conga instance or a v2 DRC namspace
-      :If ''≡LDRC            ⍝ Pointer not set
+      :If 9=⎕NC 'LDRC' ⋄ ldrc←LDRC ⍝ Ref already set
+      :Else           
           :If 9=⎕NC'#.Conga' ⍝ Else use Conga factory function
               ldrc←#.Conga.Init''
           :ElseIf 9=⎕NC'#.DRC'   ⍝ Look for v2 DRC namespace
               ldrc←#.DRC
           :EndIf
-      :Else ⍝ If set return it
-          ldrc←LDRC
       :EndIf
     ∇
 
@@ -303,73 +302,42 @@
       r←(8⍴2)⊥⍉s⍴(×/s)↑bits
       r←(-0=¯1↑r)↓r
     ∇                                 
+   
+    :Section Deprecated Shared Methods
 
-    ∇ certs←ReadCertUrls;certurls;list
+    ∇ certs←ReadCertUrls;LDRC
+     ⍝ NB Deprecated / for backwards compatibility
+     ⍝    Use instance method CertificateUrls
       :Access Public Shared
-      LDRC←FindDRC ''
-      certurls←LDRC.Certs'Urls' ''
-      :If 0=1⊃certurls
-      :AndIf 0<1⊃⍴2⊃certurls
-          certs←{LDRC.⎕NEW X509Cert((4⊃⍵)('URL'(1⊃⍵))('URL'(2⊃⍵)))}¨↓2⊃certurls
-      :Else
-          certs←⍬
-      :EndIf
+      LDRC←FindDRC ⍬
+      certs←LDRC.ReadCertUrls
     ∇
 
-    ∇ certs←ReadCertFromStore storename;cs
+    ∇ certs←ReadCertFromStore storename;LDRC
+     ⍝ NB Deprecated / for backwards compatibility
+     ⍝    Use instance method CertificateFromStore
       :Access Public Shared
-      LDRC←FindDRC ''
-      cs←LDRC.Certs'MSStore'storename
-      :If 0=1⊃cs
-      :AndIf 0<⍴2⊃cs
-          certs←LDRC.⎕NEW¨(2⊃cs){X509Cert(⍺ ⍵)}¨⊂'MSStore'storename
-      :Else
-          certs←⍬
-      :EndIf
+      LDRC←FindDRC ⍬
+      certs←LDRC.ReadCertFromStore storename
     ∇
 
-    ∇ certs←ReadCertFromFolder wildcardfilename;files;f;filelist
-      :Access Public Shared                     
-      LDRC←FindDRC ''
-      filelist←1 LDRC.Files.List wildcardfilename
-      files←filelist[;1]
-      certs←⍬
-      :For f :In files
-          certs,←ReadCertFromFile f
-      :EndFor
+    ∇ certs←ReadCertFromFolder foldername;LDRC
+     ⍝ NB Deprecated / for backwards compatibility
+     ⍝    Use instance method CertificateFromFolder
+      :Access Public Shared
+      LDRC←FindDRC ⍬
+      certs←LDRC.ReadCertFromFolder foldername
     ∇
 
-    ∇ certs←ReadCertFromFile filename;c;base64;tie;size;cert;ixs;ix;d;pc;temp
-      :Access Public Shared                          
-      LDRC←FindDRC ''
-      certs←⍬
-      c←'-----BEGIN X509 CERTIFICATE-----' '-----BEGIN CERTIFICATE-----'
-      base64←'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-      tie←filename ⎕NTIE 0
-      size←⎕NSIZE tie
-      cert←⎕NREAD tie 82 size
-      ixs←c{⊃,/{(⍳⍴⍵),¨¨⍵}⍺{(⍺⍷⍵)/⍳⍴⍵}¨⊂⍵}cert
-      :If 0<⍴ixs
-          :For ix :In ixs
-              d←((2⊃ix)+⍴⊃c[1⊃ix])↓cert
-              d←(¯1+⊃d⍳'-')↑d
-              d←(d∊base64)/d
-                  ⍝d←tochar base64 Decode d
-              d←base64 Decode d
-              certs,←LDRC.⎕NEW X509Cert(d('DER'filename))
-     
-                  ⍝c.Origin←'DER' filename
-                  ⍝certs,←c
-          :EndFor
-      :Else
-          cert←⎕NREAD tie 83 size 0
-             ⍝ cert←⎕AV[⎕IO+256|cert+256]
-          certs,←LDRC.⎕NEW X509Cert(cert('DER'filename))
-              ⍝c.Origin←'DER' filename
-              ⍝certs,←c
-      :EndIf
-      ⎕NUNTIE tie
-      certs←LDRC.SetParents certs
+    ∇ certs←ReadCertFromFile filename;LDRC
+     ⍝ NB Deprecated / for backwards compatibility
+     ⍝    Use instance method CertificateFromFolder
+      :Access Public Shared
+      LDRC←FindDRC ⍬
+      certs←LDRC.ReadCertFromFile filename
     ∇
+
+    :EndSection Deprecated Shared Methods
+
 
 :EndClass
