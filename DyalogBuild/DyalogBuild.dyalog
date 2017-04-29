@@ -41,7 +41,7 @@
       r←(2⊃⎕SI),'[',(⍕2⊃⎕LC),']: ',msg
     ∇
 
-    ∇ r←DoTest args;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok;t;trace
+    ∇ r←DoTest args;⎕TRAP;WIN;start;source;ns;files;f;z;fns;filter;verbose;LOGS;steps;setups;setup;DYALOG;WSFOLDER;suite;crash;m;v;sargs;ignored;type;TESTSOURCE;extension;repeat;run;silent;setupok;t;trace
       ⍝ run some tests from a namespace or a folder
       ⍝ switches: args.(filter setup teardown verbose)
      
@@ -53,7 +53,10 @@
       (verbose filter crash silent trace)←args.(verbose filter crash silent trace)
       :If null≢repeat←args.repeat
           repeat←⊃2⊃⎕VFI repeat
-      :EndIf
+      :EndIf        
+      
+      :If crash ⋄ ⎕TRAP←0 'S' ⋄ :EndIf ⍝ Defeat UCMD trapping
+
       repeat←1⌈repeat
      
       :If 9=#.⎕NC source←1⊃args.Arguments ⍝ It's a namespace
