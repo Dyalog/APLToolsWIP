@@ -38,7 +38,6 @@
          :If 0 check⊃ret←iConga.Send clt data
              →fail because'Clt Send failed: ',,⍕ret ⋄ :EndIf
          :If (0 'Connect' 0)check(⊂1 3 4)⌷4↑ret←iConga.Wait srv maxwait
-             ∘∘∘
              →fail because'Srv Wait did not produce a Connect event: ',,⍕ret ⋄ :EndIf
 
          con←2⊃ret ⍝ Server-side connection name
@@ -73,14 +72,14 @@
              →fail because'Unable to get Client LocalAddr: ',,⍕la ⋄ :EndIf
          :If (2 2⊃la)check 2 2⊃pa
              →fail because'Server Peer & Client Local addresses did not match: ',,⍕(2 2∘⊃¨pa la) ⋄ :EndIf
+         :If (clt srv)check {⍵[⍋↑⍵]}z←iConga.Names'.'
+             →fail because'List of names not as expected: ',,⍕z ⋄ :EndIf
 
          ⍝ Close down
          :If 0 check⊃ret←iConga.Close clt
              →fail because'Clt close failed: ',,⍕ret ⋄ :EndIf
          :If (0 'Error' 1119)check(⊂1 3 4)⌷4↑res←iConga.Wait srv maxwait
              →fail because'Did not get 1119 from Srv Wait: ',,⍕res ⋄ :EndIf
-         :If (,⊂srv)check z←iConga.Names'.'
-             →fail because'List of names not as expected: ',,⍕z ⋄ :EndIf
          :If 0 check⊃ret←iConga.Close srv
              →fail because'Srv close failed: ',,⍕ret ⋄ :EndIf
 
