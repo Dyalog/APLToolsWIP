@@ -1,9 +1,9 @@
 ﻿    :Class Client
-        :field public DRC
-        :field public name
-        :field public address
-        :field public service    
-        :field public timeout
+        :Field Public LIB
+        :Field Public name
+        :Field Public address
+        :Field Public service    
+        :Field Public timeout
   
           Assert←{
               ⍺=⊃⍵:⍵
@@ -12,13 +12,13 @@
 
 
         ∇ makeN arg;r;err
-          :Access public 
+          :Access Public 
           :Implements Constructor
          
           enc←{1=≡⍵:⊂⍵ ⋄ ⍵}
           defaults←{⍺,(⍴,⍺)↓⍵}
           name←⍬
-          (DRC address service timeout)←(enc arg)defaults ⍬'localhost' 5000 20000
+          (LIB address service timeout)←(enc arg)defaults ⍬'localhost' 5000 20000
          
         ∇
 
@@ -28,29 +28,29 @@
         ∇
 
         ∇ err←Connect
-          :Access public
-          r←0 Assert DRC.Clt''address service
+          :Access Public
+          r←0 Assert LIB.Clt''address service
           (err name)←2↑r
         ∇
                     
         ∇ Close
-          :Access public 
+          :Access Public 
           :If ⍬≢name
-              _←DRC.Close name
+              _←LIB.Close name
               name←⍬
           :EndIf
         ∇
 
 
         ∇ data←SendRecv req;err;cmd;obj;evt;dat
-          :Access public
+          :Access Public
           data←⍬
           ⍝ we could connect if somebody forgot
           :If ⍬≡name ⋄ Connect ⋄ :EndIf
          
-          (err cmd)←0 Assert DRC.Send name req
+          (err cmd)←0 Assert LIB.Send name req
           :While err=0
-              (err obj evt dat)←4↑0 Assert DRC.Wait cmd timeout
+              (err obj evt dat)←4↑0 Assert LIB.Wait cmd timeout
               :If evt≢'Timeout'
                   data←dat
                   :Leave

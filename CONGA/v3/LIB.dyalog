@@ -1,4 +1,4 @@
-﻿:Class DRC
+﻿:Class LIB
 ⍝ NB instances are always created as siblings of the Conga namespace
 
     :Field Public LibPath

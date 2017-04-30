@@ -1,38 +1,39 @@
 ﻿    :Class Server 
-        :field public DRC
-        :field public address
-        :field public service 
-        :field public timeout
-        :field Private conclass 
-        :field Private events
-        :field public extra
-        :field private name
-        :field private htid
-        :field private done
-        :field private HError 
+        :Field Public LIB
+        :Field Public address
+        :Field Public service 
+        :Field Public timeout
+        :Field Public extra
+        :Field Private name
+
+        :Field Private htid
+        :Field Private done
+        :Field Private HError 
+        :Field Private conclass 
+        :Field Private events
 
           Assert←{
               ⍺=⊃⍵:⍵
               ('Server error: ',⍕⍵)⎕SIGNAL 999
           }
 
-        ∇ ref←GetDRCShared
-          :Access public shared
-          ref←## ⍝.DRCShared
+        ∇ ref←Conga
+          :Access Public Shared
+          ref←## ⍝ Conga is the parent (as things stand)
         ∇
 
         ∇ makeN arg
-          :Access public
-          :Implements constructor
+          :Access Public
+          :Implements Constructor
           enc←{1=≡⍵:⊂⍵ ⋄ ⍵}
           defaults←{⍺,(⍴,⍺)↓⍵}
           done←¯1
           timeout←5000
           HError←0
           events←⍬
-          (DRC service conclass address extra)←(enc arg)defaults ⍬ 5000 GetDRCShared.Connection''(⎕NS'')
-          :If DRC≡⍬
-              DRC←GetDRCShared.Init''
+          (LIB service conclass address extra)←(enc arg)defaults ⍬ 5000 Conga.Connection''(⎕NS'')
+          :If LIB≡⍬
+              LIB←Conga.Init''
           :EndIf
         ∇
     
@@ -43,13 +44,13 @@
 
    
         ∇ Start;err;sp;p
-          :Access public
-          (err name)←0 Assert DRC.Srv''address service,conclass.ServerArgs
+          :Access Public
+          (err name)←0 Assert LIB.Srv''address service,conclass.ServerArgs
           done←0
           sp←⎕THIS conclass.ServerProperties name
           :If 0<⍴sp
               :For p :In sp
-                  _←DRC.SetProp(⊂name),p
+                  _←LIB.SetProp(⊂name),p
               :EndFor
           :EndIf
          
@@ -57,15 +58,15 @@
         ∇
     
         ∇ Stop
-          :Access public
+          :Access Public
           :If done=¯1 ⋄ :Return ⋄:EndIf
 
           done←1
-          cons←DRC.Names name
+          cons←LIB.Names name
           :If 0≠⎕NC name         
               (⍎name).(⎕EX¨⎕NL 9)  ⍝ Clear all the Connection instances
               ⎕EX name             ⍝ Clear the namespace for all the instances
-              _←DRC.Close name     ⍝ Close the server
+              _←LIB.Close name     ⍝ Close the server
               ⎕DL timeout÷1000     ⍝ wait for Wait to return
           :EndIf
           
@@ -76,15 +77,14 @@
         ∇
 
         ∇ onTimeout
-          :Access public
-          :Access Overridable         
+          :Access Public Overridable
         ∇
         
 
         ∇ Handler name;r;newcon;err;obj;evt;data
           ⍎name,'←⎕ns '''' '
           :While ~done
-              :If 0=⊃r←DRC.Wait name timeout
+              :If 0=⊃r←LIB.Wait name timeout
                   (err obj evt data)←4↑r
                   :Select evt
                   :Case 'Connect'
@@ -105,7 +105,7 @@
                       :If ∨/events∊⊂evt
                           ⍎obj,'.on',evt,'& obj data'
                       :Else
-                          _←DRC.Close name
+                          _←LIB.Close name
                           'unexpected event'⎕SIGNAL 999
                       :EndIf
                   :EndSelect
@@ -118,9 +118,9 @@
         ∇
         
         ∇ Remove obj
-          :Access public
+          :Access Public
           _←⎕EX obj
-          _←DRC.Close obj
+          _←LIB.Close obj
         ∇
 
     :EndClass

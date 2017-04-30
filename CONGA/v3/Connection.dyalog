@@ -12,29 +12,29 @@
     ∇ sp←srv ServerProperties name
       :Access Public shared
          ⍝ Return the Properties to set for the server or
-         ⍝ use the srv ref to access srv and srv.DRC and do it yourself
+         ⍝ use the srv ref to access srv and srv.LIB and do it yourself
       sp←⍬
     ∇
 
     ∇ e←Progress(obj data)
       :Access public
-      e←srv.DRC.Progress obj data
+      e←srv.LIB.Progress obj data
     ∇
 
     ∇ e←Respond(obj data)
       :Access public
-      e←srv.DRC.Respond obj data
+      e←srv.LIB.Respond obj data
     ∇
 
     ∇ e←Send(data close)
       :Access public
-      e←srv.DRC.Send Name data close
+      e←srv.LIB.Send Name data close
     ∇
 
     ∇ Close obj
       :Access public
       srv.Remove Name
-      _←srv.DRC.Close Name
+      _←srv.LIB.Close Name
     ∇
 
 

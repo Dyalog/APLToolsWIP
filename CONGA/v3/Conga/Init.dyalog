@@ -17,7 +17,7 @@
  rootname←⊃((0≠≢arg)/enc arg)defaults,⊂'DEFAULT'
  :If 0=⊃r←LoadSharedLib libpath ⍝ Sets LibPath as side-effect
      :If ⍬≡ref←FindInst rootname
-         ref←##.⎕NEW DRC(LibPath rootname) ⍝ NB always create instances in the parent space
+         ref←##.⎕NEW LIB(LibPath rootname) ⍝ NB always create instances in the parent space
      :EndIf
  :Else
      ('Unable to load shared library: ',⍕r)⎕SIGNAL 999

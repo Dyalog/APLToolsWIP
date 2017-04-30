@@ -177,8 +177,8 @@
      
       ⎕IO←1
      
-      trustroot←DRC.X509Cert.ReadCertFromStore'root'
-      trustca←DRC.X509Cert.ReadCertFromStore'CA'
+      trustroot←LDRC.X509Cert.ReadCertFromStore'root'
+      trustca←LDRC.X509Cert.ReadCertFromStore'CA'
       current←⎕THIS
      
       :Repeat
