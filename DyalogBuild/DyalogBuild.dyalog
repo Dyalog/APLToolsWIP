@@ -31,7 +31,7 @@
     ∇ r←expect check got
       :If r←expect≢got
           ⎕←'expect≢got:'
-          ⎕←(2⊃⎕SI),'[',(⍕2⊃⎕LC),'] ',(1+2⊃⎕LC)⊃(2⊃⎕RSI).⎕NR 2⊃⎕SI
+          ⎕←(2⊃⎕SI),'[',(⍕2⊃⎕LC),'] ',(1+2⊃⎕LC)⊃(1⊃⎕RSI).⎕NR 2⊃⎕SI
           :If ##.crash ⋄ ∘∘∘ ⋄ :EndIf
       :EndIf
     ∇
