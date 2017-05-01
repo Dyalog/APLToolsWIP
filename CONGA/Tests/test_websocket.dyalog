@@ -1,5 +1,6 @@
 ﻿ r←test_websocket dummy;Port;Host;nl;maxwait;Features;MaxSize;to83;utf8;ret;srv;clt;res;Continuation;drt;len;data;Fin;testname;offset;z;wscon
-⍝ Test upgrade of http connection to websocket
+⍝ Test upgrade of http connection to websocket    
+
  Port←8088 ⋄ Host←'localhost'
  nl←⎕UCS 13 10
  maxwait←5000 ⋄ MaxSize←450000

@@ -6,4 +6,5 @@ Setup   : setup_v2 setup_v3 setup_v3_root
 Teardown: teardown
 Test    : test_core
 Test    : test_multiroot
+Test    : test_websocket
 Test    : test_httpcommand.TestAll
