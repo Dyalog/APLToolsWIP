@@ -28,7 +28,7 @@
       :Case 2 ⍝ Mondadic: fn rarg
           _←Respond obj ({0::⎕EN ⎕DM ⋄ 0((⍎1⊃⍵)(2⊃⍵))}data)
       :Case 3 ⍝ Dyadic:   fn larg rarg
-          _←Respond obj ({0::⎕EN ⎕DM ⋄ 0((3⊃⍵)(⍎1⊃⍵)(2⊃⍵))}data)
+          _←Respond obj ({0::⎕EN ⎕DM ⋄ 0((2⊃⍵)(⍎1⊃⍵)(3⊃⍵))}data)
       :Else
           _←Respond obj (999 'Ill-formed RPC call')
       :EndSelect
