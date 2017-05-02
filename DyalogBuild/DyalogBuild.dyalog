@@ -1,5 +1,7 @@
 ﻿:Namespace DyalogBuild
-⍝ Implement ]build & ]test UCMDs
+⍝ Implement ]DBuild & ]DTest UCMDs
+⍝ This code is experimental and being used internally by the Dyalog Tools group.
+⍝ Feedback to tools@dyalog.com is very welcome!
 
     ⎕ML←⎕IO←1
 
@@ -456,7 +458,7 @@
       r←⎕NS¨2⍴⊂''
       r.(Group Parse)←⊂'SALT' '' ⍝ Defaults
      
-      r.Name←'Build' 'Test'
+      r.Name←'DBuild' 'DTest'
       r[1].Desc←'Execute a DyalogBuild file'
       r[1].Parse←'1S -production -clear[=]'
       r[2].Desc←'Run tests from a namespace or folder'
@@ -470,9 +472,9 @@
       uc←{2=≡⍵:∇¨⍵ ⋄ ⎕SE.Dyalog.Utils.ucase ⍵}     ⍝ upper case
      
       :Select Ûcmd
-      :Case 'Build'
+      :Case 'DBuild'
           Û←DoBuild Ûargs
-      :Case 'Test'
+      :Case 'DTest'
           Û←DoTest Ûargs
       :Else
           Û←'Unable to run command ',Ûcmd
@@ -483,7 +485,7 @@
     ∇ r←level Help Cmd
       (1↑Cmd)←⎕SE.Dyalog.Utils.ucase 1↑Cmd
      
-      :If 'Build'≡Cmd
+      :If 'DBuild'≡Cmd
           r←⊂'Runs one or more DyalogBuild scripts'
           :If 0=level
               r,←⊂'Args: filenames [-production]]'
@@ -493,7 +495,7 @@
               r,←⊂'-clear[=ncs]  will expunge all objects, or objects of specified nameclasses'
           :EndIf
      
-      :ElseIf 'Test'≡Cmd
+      :ElseIf 'DTest'≡Cmd
           r←⊂'Run a selection of functions named test_* from a namespace or folder'
           :If 0=level
               r,←⊂'Args: ns-or-folder [-filter=string] [-setup=fn] [-teardown=fn]]'

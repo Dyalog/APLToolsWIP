@@ -1,51 +1,51 @@
-﻿  :Class MyRPC : #.Conga.Connection
+﻿:Class SimpleRPC : #.Conga.Connection
 
-        :field Public Methods
-        enc←{(326≠⎕dr ⍵)∧  1=≡⍵:,⊂⍵ ⋄ ⍵}
+    enc←{(326≠⎕dr ⍵)∧1=≡⍵:,⊂⍵ ⋄ ⍵} ⍝ ravel-enclose-if-simple
 
-        ∇ MakeN arg
-          :Access Public
-          :Implements Constructor :Base arg
-             Methods←{↑(⊂¨⍵),¨(⎕AT ⍵)[;1]}   (⎕nl ¯3) ~ (⎕base.⎕nl ¯3),⊂'onReceive'
-        ∇
-    
-        ∇r←TestRPC arg
-        :access public
-         r←arg+1
-        ∇       
-
-        ∇ onReceive(obj data)
-          :Access public override 
-⍝          :if 0=⎕nc 'Methods'
-⍝             Methods←{↑(⊂¨⍵),¨(⎕AT ⍵)[;1]}   (⎕nl ¯3) ~ (⎕base.⎕nl ¯3),⊂'onReceive'
-⍝          :endif 
-           
-           data←enc data
-
-           :If 3<⍴data ⍝ Command is expected to be (function name)(argument)
-                _←Respond obj(999 'Bad command format') ⋄ :Return
-           :EndIf
-           
-            Methods[;1]⍳ cmd←1⊃data
-           :If (⊃⍴Methods)<fi←Methods[;1]⍳   ⊂cmd←1⊃data ⍝ Command is expected to be a function in this ws
-              _←Respond obj(999('Illegal command: ',cmd)) ⋄ :return
-           :EndIf
+    ∇ MakeN arg
+      :Access Public
+      :Implements Constructor :Base arg
      
-           :If (⊃Methods[fi;2])≠¯1+⍴data  ⍝ Number of argument need to match the intance methode
-               _←Respond obj(999('Wrong number of arguments: ',cmd)) ⋄ :return
-            :EndIf
+      Methods←{⍵,⍪1 2∘⊃¨⎕AT¨⍵} 'Reverse' 'Rotate' ⍝ Callable methods and valences
+    ∇
+
+    ∇ onReceive(obj data);cmd;fi;n
+      :Access Public Override
      
-            :Select ⊃⍴data
-            :Case 1                
-                _←Respond obj   ({0::⎕en ⎕dm⋄ 0 (⍎⊃⍵) } data)      
-                  :Case 2
-                _←Respond obj  ({0::⎕en ⎕dm⋄ 0 ((⍎1⊃⍵) (2⊃⍵)) } data )     
-                :Case 3
-                _←Respond obj  ({0::⎕en ⎕dm⋄ 0 ((3⊃⍵) (⍎1⊃⍵) (2⊃⍵)) } data)      
-               :Else 
-               _←Respond obj (999 'ooh no')
-              :EndSelect
-        ∇
+      data←enc data
+          
+      :If (⊃⍴Methods)<fi←Methods[;1]⍳⊂cmd←1⊃data ⍝ Command is expected to be a function in this ws
+          _←Respond obj(999('Illegal command: ',cmd)) ⋄ :Return
+      :EndIf
+     
+      :If (n←⊃Methods[fi;2])≠¯1+⍴data  ⍝ Number of argument need to match the intance methode
+          _←Respond obj(999(cmd, ' expects ',(⍕n), 'arguments')) ⋄ :Return
+      :EndIf
+     
+      :Select ≢data
+      :Case 1 ⍝ Niladic:  fn
+          _←Respond obj ({0::⎕EN ⎕DM ⋄ 0(⍎⊃⍵)}data)
+      :Case 2 ⍝ Mondadic: fn rarg
+          _←Respond obj ({0::⎕EN ⎕DM ⋄ 0((⍎1⊃⍵)(2⊃⍵))}data)
+      :Case 3 ⍝ Dyadic:   fn larg rarg
+          _←Respond obj ({0::⎕EN ⎕DM ⋄ 0((2⊃⍵)(⍎1⊃⍵)(3⊃⍵))}data)
+      :Else
+          _←Respond obj (999 'Ill-formed RPC call')
+      :EndSelect
+    ∇
+   
+   :Section Exposed Functions
 
-    :EndClass
+    ∇ r←Reverse arg
+      :Access Public Instance
+      r←⌽arg
+    ∇
 
+    ∇ r←left Rotate right
+      :Access Public Instance
+      r←left⌽right
+    ∇
+
+   :EndSection Exposed Functions
+
+:EndClass

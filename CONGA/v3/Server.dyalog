@@ -31,6 +31,7 @@
           timeout←5000
           HError←0
           events←⍬
+          'Please use Conga.Srv to instantiate Servers' ⎕SIGNAL (Conga≡#)/11
           (LIB service conclass address extra)←(enc arg)defaults ⍬ 5000 Conga.Connection''(⎕NS'')
           :If LIB≡⍬
               LIB←Conga.Init''

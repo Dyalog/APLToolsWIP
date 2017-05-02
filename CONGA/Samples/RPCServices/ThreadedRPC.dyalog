@@ -1,8 +1,8 @@
-﻿    :Class MyConThread : #.Conga.Connection
+﻿    :Class ThreadedRPC : #.Conga.Connection
 
         ∇ sp←srv ServerProperties name
           :Access Public Shared
-          sp←,⊂'OnlyConnections' 1
+          sp←,⊂'ConnectionOnly' 1
         ∇
     
 
@@ -28,7 +28,7 @@
 
         ∇ Handler name;r;newcon;err;obj;evt;data
           events←2↓¨'on'{((⊂⍺)≡¨(⍴,⍺)↑¨⍵)/⍵}⎕NL ¯3
-          :While !done
+          :While ~done
               :If 0=⊃r←DRC.Wait name timeout
                   (err obj evt data)←4↑r
                   :Select evt
