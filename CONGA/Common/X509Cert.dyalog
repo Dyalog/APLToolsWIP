@@ -233,7 +233,7 @@
           r←(0=⊃z←LDRC.Certs'Decode'_Cert)
           DecodeOK←r
       :EndIf
-      r+←(r=1)∧(_KeyOrigin≢'')∨_Key≢''     
+      r+←(r=1)∧(_KeyOrigin≢'')∨_Key≢''
     ∇
 
     ∇ Make0
@@ -279,10 +279,10 @@
       LDRC←FindDRC''
     ∇
 
-    ∇ ldrc←FindDRC dummy                 
+    ∇ ldrc←FindDRC dummy
     ⍝ Establish a pointer to a Conga instance or a v2 DRC namspace
-      :If 9=⎕NC 'LDRC' ⋄ ldrc←LDRC ⍝ Ref already set
-      :Else           
+      :If ''≢LDRC ⋄ ldrc←LDRC ⍝ Ref already set
+      :Else
           :If 9=⎕NC'#.Conga' ⍝ Else use Conga factory function
               ldrc←#.Conga.Init''
           :ElseIf 9=⎕NC'#.DRC'   ⍝ Look for v2 DRC namespace
@@ -301,8 +301,8 @@
      
       r←(8⍴2)⊥⍉s⍴(×/s)↑bits
       r←(-0=¯1↑r)↓r
-    ∇                                 
-   
+    ∇
+
     :Section Deprecated Shared Methods
 
     ∇ certs←ReadCertUrls;LDRC
