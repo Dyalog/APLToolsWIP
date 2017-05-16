@@ -22,9 +22,4 @@ Class : Common/X509Cert.dyalog, Target=Conga
 CSV   : Common/ErrorTable.csv, ColTypes=2 1 1, Target=Conga.ErrorTable
 CSV   : Common/ErrorTable.csv, ColTypes=2 1 1, Target=DRC.ErrorTable
 
-COPY  : Samples/CertTool/*, Target=Distribution/Samples/Conga/CertTool
-COPY  : Samples/HttpServers/*, Target=Distribution/Samples/Conga/HttpServers
-COPY  : Samples/RPCServices/*, Target=Distribution/Samples/Conga/RPCServices
-COPY  : Library/*, Target=Distribution/Library
-
 LX    : ⎕←'This is the Conga v3.0 workspace.'
