@@ -47,18 +47,31 @@
       ⍝ we could connect if somebody forgot
       :If ⍬≡name ⋄ _←Connect ⋄ :EndIf
      
-      (err cmd)←2↑res←LIB.Send name req
+      (err cmd)←2↑res←Send req
       :If err≠0
           (⍕res)⎕SIGNAL 11
       :EndIf
+
+      data←Recv cmd      
+    ∇
+
+    ∇ res←Send req
+      :Access Public
+      :If ⍬≡name ⋄ _←Connect ⋄ :EndIf ⍝ Connect if necessary
      
-      :While err=0
+      res←LIB.Send name req     
+    ∇                                  
+    
+    ∇ data←Recv cmd;evt;dat;obj;err
+      :Access Public
+     
+      :Repeat
           (err obj evt dat)←4↑0 Assert LIB.Wait cmd timeout
           :If evt≢'Timeout'
               data←dat
               :Leave
           :EndIf
-      :EndWhile
+      :EndRepeat
     ∇
 
 :EndClass

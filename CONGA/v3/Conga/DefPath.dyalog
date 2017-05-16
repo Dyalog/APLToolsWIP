@@ -16,7 +16,7 @@
      :EndIf
  :Case '⍺' ⍝ means the path of the interpreter
      p←trunkds ⎕IO⊃+2 ⎕NQ'.' 'GetCommandlineArgs'
- :Case ''
+ :CaseList ⍬ ''
      p←p
  :Else
      p←addds((isWin ⍬)⌽'/\')subst p
