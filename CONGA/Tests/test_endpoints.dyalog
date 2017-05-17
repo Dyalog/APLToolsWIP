@@ -17,6 +17,7 @@
      →fail because'Verify ReadyStrategy failed: ',,⍕ret ⋄ :EndIf
 
  :If 0 check⊃ret←iConga.GetProp'.' 'TCPLookup' '' 80
+ :AndIf 0 check⊃ret←iConga.GetProp'.' 'TCPLookup' 'localhost' 80
      →fail because'Verify ReadyStrategy failed: ',,⍕ret ⋄ :EndIf
 
 
@@ -76,4 +77,3 @@
  →0
 fail:
  z←iConga.Close¨c1 c2 s1 s2
-

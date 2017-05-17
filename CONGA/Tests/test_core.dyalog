@@ -2,7 +2,7 @@
 ⍝∇Test: group=Basic
 ⍝ Test fundamental Conga functionality
 
- prots←∪⊃¨2⊃iConga.GetProp'.' 'TCPLookup' '' 80 ⍝ Available protocols takes from IP addresses
+ prots←∪⊃¨2⊃iConga.GetProp'.' 'TCPLookup' 'localhost' 80 ⍝ Available protocols takes from IP addresses
  Port←5000 ⋄ Host←'localhost'
  srv←'S1' ⋄ clt←'C1'
  data←'hello' '⍺∊⍵'(1 2 3)(○1 2 3)(0J1×⍳100) ⍝ test data
