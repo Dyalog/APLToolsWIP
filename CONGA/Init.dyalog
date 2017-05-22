@@ -5,4 +5,5 @@
  {}# ⎕SE.UCMD'DBuild ',path,'CONGA/CONGA'
  {}# ⎕SE.UCMD'DBuild ',path,'CONGA/CONGADEV'
  #.CONGALIB←'/devt/users/bhc/build/congabuild/distribution/linux/'
+ #.CONGALIB←'/devt/builds/Conga_Trunk/latest/linux/'
  ⎕←']DTest ',path,'CONGA/Tests/all -verbose'

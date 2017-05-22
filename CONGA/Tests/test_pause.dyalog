@@ -48,7 +48,10 @@
  :If 0 check⊃ret←iConga.SetProp s1'Pause' 0
      →fail because'Set Pause to 0 failed: ',,⍕ret ⋄ :EndIf
 
- ret←FlushPending s1((iConga.Names'.')~⊂s1)
+ :While 0<⍴iConga.Names s1
+     ret←FlushPending s1((iConga.Names'.')~⊂s1)
+     ⎕←'.'
+ :EndWhile
 
  :If ((⍴tests)⍴0)check⊃∘⍴¨ret←TestConnect¨tests
      →fail because'Connection failed :',,⍕(⊃∘⍴¨ret)/ret ⋄ :EndIf
