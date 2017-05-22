@@ -18,7 +18,7 @@
              →fail because'Set EventMode to 0 failed: ',,⍕ret ⋄ :EndIf
 
          :If secure
-             :Trap ##.crash↓0
+             :Trap ##.halt↓0
                  srvx509←ReadCert'server/localhost'
                  cltx509←ReadCert'client/client'
              :Else
@@ -72,7 +72,7 @@
              →fail because'Unable to get Client LocalAddr: ',,⍕la ⋄ :EndIf
          :If (2 2⊃la)check 2 2⊃pa
              →fail because'Server Peer & Client Local addresses did not match: ',,⍕(2 2∘⊃¨pa la) ⋄ :EndIf
-         :If (clt srv)check {⍵[⍋↑⍵]}z←iConga.Names'.'
+         :If (clt srv)check{⍵[⍋↑⍵]}z←iConga.Names'.'
              →fail because'List of names not as expected: ',,⍕z ⋄ :EndIf
 
          ⍝ Close down
