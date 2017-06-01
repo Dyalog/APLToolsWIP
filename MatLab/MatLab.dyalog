@@ -7,12 +7,73 @@
       r←Read'c:\devt\matlabapl\testdataset.mat'
     ∇
     
-    ∇ r←TestWrite
-    
+    ∇ r←TestWrite;data
+      data←Read'c:\devt\matlabapl\testdataset.mat'
+      r←data Write 'c:\devt\matlabapl\testcopyset.mat'
     ∇
+    
+    ∇ r←data Write name;header;now;vars;ref;v;sparse
+      ⍝ Read a Matlab File in Little-Endian Format
+
+      now←⎕TS     
+      header←'MATLAB 5.0 MAT-file, Platform: PCWIN64, Created on: ' 
+      header,←(1+7|¯1+2 ⎕NQ '.' 'DateToIDN'(3↑now))⊃Days ⍝ weekday
+      header,←' ',(now[2]⊃Months),' '
+      header,←,'ZI2,< >,ZI2,<:>,ZI2,<:>,ZI2,< >,ZI4' ⎕FMT 1 5⍴now[3 4 5 6 1]
+      header←(116↑header),(⎕UCS (8⍴0),0 1),'IM' ⍝ Version 0x0100 and Little Endian IM
+      
+      :If 9=data.⎕NC 'Data' ⋄ ref←data.Data
+      :Else ⋄ ref←data
+      :EndIf     
+      
+      vars←ref.⎕nl -2
+      :If 2=data.⎕NC 'Sparse' ⋄ sparse←data.Sparse
+      :ElseIf 2=data.⎕NC 'Variables' ⋄ sparse←
+      :Else ⋄ sparse←''
+      :EndIf
+
+      :For v :In vars
+
+      
+      :EndFor
+
+      :While offset<≢data
+          (type size)←256(⊥⍤1)⎕UCS data[(offset+0 4)∘.+swap⍳4]
+          var←data[(offset+8)+⍳size]
+          offset+←size+8
+          :If compressed←type=miCOMPRESSED ⍝ zlib compressed
+              var←80 ⎕DR ¯2(219⌶)83 ⎕DR var
+              (type size)←256(⊥⍤1)⎕UCS swap 2 4⍴var
+              var←8↓var
+              :If size≠≢var
+                  ∘∘∘ ⍝ Assertion failed
+              :EndIf
+          :EndIf
+          vars,←⊂type DecodeVariable var
+      :EndWhile           
+
+      :If offset≠≢data
+          'Truncated file'⎕SIGNAL 11
+      :EndIf          
+        
+      r.Data←⎕NS ''
+      :If 1=≢vars←↑vars
+          ⍎'r.Data.(',(⍕vars[1;2]),')←vars[1;4]'
+      :Else
+          ⍎'r.Data.(',(⍕vars[;2]),')←vars[;4]'
+      :EndIf
+
+      z←vars[;2 1 3]
+      classes←↓{(⍵[;1 2]∧.='mx')⌿⍵}'m' ⎕NL 2
+      z[;3]←classes[(⍎⍕classes)⍳z[;3]]
+      r.Variables←z
+       
+      r.⎕DF header
+    ∇   
 
     ∇ var←type DecodeVariable data;flags;class;logical;global;complex;z;rank;size;offset;shape;len;name;arrays;bytes;dr;i;t;nzmax
-     
+     ⍝ Decode a variable (recursive for matrix types)
+
       :Select type
       :Case miMATRIX
           assert(miUINT32 8)≡int 2 4⍴data
@@ -163,7 +224,8 @@
           data←''
       :EndTrap
     ∇
-
+    
+ 
     ∇ r←Summary ml;props;classes;z
     ⍝ Display a summary of the contents of the result of a Read
      
@@ -221,6 +283,9 @@
        dyDOUBLE←645
        dyDECF←1287
        dyCOMPLEX←1289
+       
+       Months←'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'
+       Days←'Mon' 'Tue' 'Wed' 'Thu' 'Fri' 'Sat' 'Sun'
 
     :EndSection
 
