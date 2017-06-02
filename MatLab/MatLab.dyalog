@@ -3,8 +3,10 @@
 
     ⎕ML←⎕IO←1 ⍝ Defaults
         
-    ∇ r←TestRead
-      r←Read'c:\devt\matlabapl\testdataset.mat'
+    ∇ r←TestRead;r1;r2
+      r1←Read'c:\devt\matlabapl\testdataset.mat'
+      r2←Read'c:\devt\matlabapl\testdataset_uncompressed.mat'
+      r←r1 r2
     ∇
     
     ∇ r←TestWrite;data
@@ -71,7 +73,7 @@
       r.⎕DF header
     ∇   
 
-    ∇ var←type DecodeVariable data;flags;class;logical;global;complex;z;rank;size;offset;shape;len;name;arrays;bytes;dr;i;t;nzmax
+    ∇ var←type DecodeVariable data;flags;class;logical;global;complex;z;rank;size;offset;shape;len;name;arrays;bytes;dr;i;t;nzmax;u;width;eltype
      ⍝ Decode a variable (recursive for matrix types)
 
       :Select type
@@ -107,36 +109,44 @@
           arrays←⍬  
 
           :While offset<≢data                ⍝ Loop on elements
-              :If 0∧.≠(z bytes)←int 2 2⍴data[offset+⍳4] ⍝ "Compressed" type & length?
+              :If 0∧.≠(eltype bytes)←int 2 2⍴data[offset+⍳4] ⍝ "Compressed" type & length?
               :AndIf bytes≤4
                   offset+←4
               :Else                                     ⍝ 4-byte type & length
-                  (z bytes)←int 2 4⍴data[offset+⍳8]
+                  (eltype bytes)←int 2 4⍴data[offset+⍳8]
                   offset+←8
               :EndIf
      
-              :Select z      ⍝ Element type
+              :Select eltype      ⍝ Element type
               :Case miMATRIX ⍝ nested element
-                  t←z DecodeVariable data[offset+⍳bytes]
+                  t←eltype DecodeVariable data[offset+⍳bytes]
                   assert 0=≢2⊃t
                   t←4⊃t ⍝ Just the data value
-              :Case miUTF8
-                  t←shape⍴'UTF-8' ⎕UCS ⎕UCS data[offset+⍳bytes]
-              :CaseList miINT32 miDOUBLE ⍝ Signed Numeric     
-                  dr←(dyINT32 dyDOUBLE)[miINT32 miDOUBLE⍳z]
-                  :If dr=dyDOUBLE
-                      data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
-                  :EndIf 
 
+              :Case miUTF8       
+                  t←shape⍴'UTF-8' ⎕UCS ⎕UCS data[offset+⍳bytes] 
+
+              :Case miDOUBLE                           
+                  ⍝ turn NaNs into zero
+                  data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
+                  t←dyDOUBLE ⎕DR data[offset+⍳bytes]
+
+              :CaseList miINTs ⍝ Signed Numeric     
+                  dr←(miINTs⍳eltype)⊃dyINTs                  
                   t←dr ⎕DR data[offset+⍳bytes]     
-                  :If class≠mxSPARSE_CLASS
-                      t←⍉(⌽shape)⍴t
-                  :EndIf
-              :Case miUINT8              ⍝ Unsigned Numerics
-                  t←⍉(⌽shape)⍴⎕UCS data[offset+⍳bytes]
+                  
+              :CaseList miUINTs
+                  width←(miUINTs⍳eltype)⊃1 2 4 8
+                  t←int ((×/shape),width)⍴data[offset+⍳bytes] 
+                                   
               :Else
                   ∘∘∘ ⍝ as yet unsupported type
-              :EndSelect
+              :EndSelect  
+              
+              :If (class≠mxSPARSE_CLASS)∧~eltype∊miUTF8 miMATRIX
+                  t←⍉(⌽shape)⍴t
+              :EndIf
+
               arrays,←⊂t
               offset+←bytes
               offset←8×⌈offset÷8     
@@ -147,8 +157,13 @@
           :Case mxSPARSE_CLASS
               ⍝ Leave as 3 vectors
           :Case mxCELL_CLASS 
+              :If (1≠≢arrays)∧80≠⎕DR⊃arrays
+              :AndIf 1∧.=≢¨arrays 
+                 arrays←⎕UCS¨arrays ⍝ uINT16 encoded chars, we think
+              :EndIf
               arrays←⍉(⌽shape)⍴arrays
-          :Else
+          :Else         
+              :If 1≠≢arrays ⋄ ∘∘∘ ⋄ :EndIf
               arrays←⊃arrays
           :EndSelect
       :Else
@@ -282,7 +297,11 @@
        dyNESTED←326
        dyDOUBLE←645
        dyDECF←1287
-       dyCOMPLEX←1289
+       dyCOMPLEX←1289   
+       
+       miUINTs←miUINT8 miUINT16 miUINT32 miUINT64
+       miINTs←miINT8 miINT16 miINT32 ⍝ INT64 not yet supported
+       dyINTs←dyINT8 dyINT16 dyINT32 
        
        Months←'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'
        Days←'Mon' 'Tue' 'Wed' 'Thu' 'Fri' 'Sat' 'Sun'
