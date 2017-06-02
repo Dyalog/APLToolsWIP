@@ -3,41 +3,42 @@
 
     ⎕ML←⎕IO←1 ⍝ Defaults
 
-    ∇ r←TestRead;r1;r2     
+    ∇ r←TestRead;r1;r2
       r1←Read'c:\devt\matlabapl\testdataset.mat'
       r2←Read'c:\devt\matlabapl\testdataset_uncompressed.mat'
       r←r1 r2
     ∇
 
-    ∇ r←TestWrite;data;f2;f1;new;old;hdrs;p;m;diff         
+    ∇ r←TestWrite;data;f2;f1;new;old;hdrs;p;m;diff
       ⎕NUNTIE ⎕NNUMS
       data←Read f1←'c:\devt\matlabapl\testdataset_nonulls.mat'
       old←ReadFile f1
       r←data Write f2←'c:\devt\matlabapl\testcopyset.mat'
       new←ReadFile f2
-      
-      :If (≢old)≠(≢new)
-          ⎕←'*** old/new length: ',(⍕≢old),'/',⍕≢new
-      :EndIf
      
       hdrs←128↑¨old new
       :If 0≠p←128-(⌽m←⊃≠/hdrs)⍳1
           ⎕←'*** Header difference:'
           ⎕←p↑¨⍪hdrs,⊂(' ∧'[1+m])
       :EndIf
-
+     
       :If ∨/diff←(128↓new)≠128↓(≢new)↑old
           ⎕←(+/diff)' differences, first one at byte ',⍕diff⍳1
       :Else
           ⎕←'[No other differences]'
-      :EndIf     
+      :EndIf
+     
+      :If (≢old)≠(≢new)
+          ⎕←'*** old/new length: ',(⍕≢old),'/',⍕≢new
+      :EndIf
+     
     ∇
 
     ∇ r←data Write name;header;now;vars;ref;v;sparse;tn;i;value;z;dr;shape;type;int
       ⍝ Read a Matlab File in Little-Endian Format
-      
-      int←{⎕UCS ,⌽⍉(⍺⍴256)⊤⍵} ⍝ litte-endian ⍺-byte integer
-
+     
+      int←{⎕UCS,⌽⍉(⍺⍴256)⊤⍵} ⍝ litte-endian ⍺-byte integer
+     
       1 ⎕NDELETE name
       tn←name ⎕NCREATE 0
      
@@ -74,7 +75,7 @@
                       :AndIf ∧/1=≢¨shapes←⍴¨value   ⍝ All vectors
                           value←(1,¨shapes)⍴¨values ⍝ Make 1-row matrices to keep MatLab happy
                       :EndIf
-                      vars[i;3]←⊂'mxCELL_CLASS'     
+                      vars[i;3]←⊂'mxCELL_CLASS'
                   :EndIf
               :CaseList z←,dyDOUBLE
                   vars[i;3]←(⊂'mxDOUBLE_CLASS')[z⍳dr]
@@ -83,24 +84,24 @@
               :EndSelect
      
           :EndFor
-      :EndIf     
+      :EndIf
      
-      :For i :In ⍳≢vars  
-           (name shape type)←vars[i;]
-           :If 80=⎕DR type ⋄ :AndIf 2=⎕NC type ⋄ type←⍎type ⋄ :EndIf
-           value←ref⍎name
-           data←type EncodeVariable name value
+      :For i :In ⍳≢vars
+          (name shape type)←vars[i;]
+          :If 80=⎕DR type ⋄ :AndIf 2=⎕NC type ⋄ type←⍎type ⋄ :EndIf
+          value←ref⍎name
+          data←type EncodeVariable name value
            ⍝ /// Do compression here
-           data ⎕NAPPEND tn
-      :EndFor             
-
+          data ⎕NAPPEND tn
+      :EndFor
+     
      
       r←⎕NSIZE tn
       ⎕FUNTIE tn
       →0
-      
+     
       ⍝⍝⍝ ↓↓↓ Code to be salvaged for compresion below
-
+     
       :While offset<≢data
           (type size)←256(⊥⍤1)⎕UCS data[(offset+0 4)∘.+swap⍳4]
           var←data[(offset+8)+⍳size]
@@ -114,110 +115,109 @@
               :EndIf
           :EndIf
           vars,←⊂type DecodeVariable var
-      :EndWhile     
-      
+      :EndWhile
+     
     ∇
 
-  ∇ r←class EncodeVariable (name value);flags;global;logical;complex;nzmax;shape;length;data
+    ∇ r←class EncodeVariable(name value);flags;global;logical;complex;nzmax;shape;length;data
      ⍝ Decode a variable (recursive for matrix types)
-      
-
-          :If class=mxSPARSE_CLASS
-              nzmax←≢⊃value
-              ∘∘∘
-              shape←??
-          :Else
-              shape←⍴value
-          :EndIf     
-      
+     
+      :If class=mxSPARSE_CLASS
+          nzmax←≢⊃value
+          ∘∘∘
+          shape←??
+      :Else
+          shape←⍴value
+      :EndIf
+     
       r←4 int miMATRIX 65535  ⍝ Everything is a matrix, we will fill in length at the end
       r,←4 int miUINT32 8     ⍝ Array flag header
       complex←logical←global←0
       flags←2⊥⌽0 0 0 0 complex logical global 0
-      r,←⎕UCS (⌽0 0 flags class),0 0 0 0 ⍝ Array flags
+      r,←⎕UCS(⌽0 0 flags class),0 0 0 0 ⍝ Array flags
       r,←4 int miINT32,(4×≢shape),({⍵+2|⍵}⍴shape)↑shape ⍝ Dimensions
-
+     
       :If 4≥length←≢name ⍝ Short name
           r,←(2 int miINT8 length),4↑name
       :Else              ⍝ Long name
           r,←(4 int miINT8 length),(8×⌈length×÷8)name
-      :EndIf 
-            
+      :EndIf
+     
       :Select class
-      :Case mxCELL_CLASS  
-         ∘∘∘
+      :Case mxCELL_CLASS
+          ∘∘∘
       :Case mxSPARSE_CLASS
-         ∘∘∘
+          ∘∘∘
       :CaseList ,mxDOUBLE_CLASS ⍝ non-nested formats
-          data←80 ⎕DR ⊃0 645 ⎕DR ,⍉value
-          r,←4 int miDOUBLE (≢data)
+          data←80 ⎕DR⊃0 645 ⎕DR,⍉value
+          r,←4 int miDOUBLE(≢data)
           r,←data
       :Else
-         ∘∘∘ ⍝ Unsupported type
-      :EndSelect     
-      
+          ∘∘∘ ⍝ Unsupported type
+      :EndSelect
+     
       r[4+⍳4]←4 int ¯8+≢r ⍝ Adjust size of miMATRIX
       →0
-
-          :While offset<≢data                ⍝ Loop on elements
-              :If 0∧.≠(eltype bytes)←int 2 2⍴data[offset+⍳4] ⍝ "Compressed" type & length?
-              :AndIf bytes≤4
-                  offset+←4
-              :Else                                     ⍝ 4-byte type & length
-                  (eltype bytes)←int 2 4⍴data[offset+⍳8]
-                  offset+←8
-              :EndIf
      
-              :Select eltype      ⍝ Element type
-              :Case miMATRIX ⍝ nested element
-                  t←eltype DecodeVariable data[offset+⍳bytes]
-                  assert 0=≢2⊃t
-                  t←4⊃t ⍝ Just the data value
+      :While offset<≢data                ⍝ Loop on elements
+          :If 0∧.≠(eltype bytes)←int 2 2⍴data[offset+⍳4] ⍝ "Compressed" type & length?
+          :AndIf bytes≤4
+              offset+←4
+          :Else                                     ⍝ 4-byte type & length
+              (eltype bytes)←int 2 4⍴data[offset+⍳8]
+              offset+←8
+          :EndIf
      
-              :Case miUTF8
-                  t←shape⍴'UTF-8'⎕UCS ⎕UCS data[offset+⍳bytes]
+          :Select eltype      ⍝ Element type
+          :Case miMATRIX ⍝ nested element
+              t←eltype DecodeVariable data[offset+⍳bytes]
+              assert 0=≢2⊃t
+              t←4⊃t ⍝ Just the data value
      
-              :Case miDOUBLE
+          :Case miUTF8
+              t←shape⍴'UTF-8'⎕UCS ⎕UCS data[offset+⍳bytes]
+     
+          :Case miDOUBLE
                   ⍝ turn NaNs into zero
-                  data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
-                  t←dyDOUBLE ⎕DR data[offset+⍳bytes]
+              data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
+              t←dyDOUBLE ⎕DR data[offset+⍳bytes]
      
-              :CaseList miINTs ⍝ Signed Numeric
-                  dr←(miINTs⍳eltype)⊃dyINTs
-                  t←dr ⎕DR data[offset+⍳bytes]
+          :CaseList miINTs ⍝ Signed Numeric
+              dr←(miINTs⍳eltype)⊃dyINTs
+              t←dr ⎕DR data[offset+⍳bytes]
      
-              :CaseList miUINTs
-                  width←(miUINTs⍳eltype)⊃1 2 4 8
-                  t←int((×/shape),width)⍴data[offset+⍳bytes]
+          :CaseList miUINTs
+              width←(miUINTs⍳eltype)⊃1 2 4 8
+              t←int((×/shape),width)⍴data[offset+⍳bytes]
      
-              :Else
-                  ∘∘∘ ⍝ as yet unsupported type
-              :EndSelect
-     
-              :If (class≠mxSPARSE_CLASS)∧~eltype∊miUTF8 miMATRIX
-                  t←⍉(⌽shape)⍴t
-              :EndIf
-     
-              arrays,←⊂t
-              offset+←bytes
-              offset←8×⌈offset÷8
-          :EndWhile
-          assert offset=≢data ⍝ no incomplete arrays
-     
-          :Select class
-          :Case mxSPARSE_CLASS
-              ⍝ Leave as 3 vectors
-          :Case mxCELL_CLASS
-              :If (1≠≢arrays)∧80≠⎕DR⊃arrays
-              :AndIf 1∧.=≢¨arrays
-                  arrays←⎕UCS¨arrays ⍝ uINT16 encoded chars, we think
-              :EndIf
-              arrays←⍉(⌽shape)⍴arrays
           :Else
-              :If 1≠≢arrays ⋄ ∘∘∘ ⋄ :EndIf
-              arrays←⊃arrays
+              ∘∘∘ ⍝ as yet unsupported type
           :EndSelect
-
+     
+          :If (class≠mxSPARSE_CLASS)∧~eltype∊miUTF8 miMATRIX
+              t←⍉(⌽shape)⍴t
+          :EndIf
+     
+          arrays,←⊂t
+          offset+←bytes
+          offset←8×⌈offset÷8
+      :EndWhile
+      assert offset=≢data ⍝ no incomplete arrays
+     
+      :Select class
+      :Case mxSPARSE_CLASS
+              ⍝ Leave as 3 vectors
+      :Case mxCELL_CLASS
+          :If (1≠≢arrays)∧80≠⎕DR⊃arrays
+          :AndIf 1∧.=≢¨arrays
+              arrays←⎕UCS¨arrays ⍝ uINT16 encoded chars, we think
+          :EndIf
+          arrays←⍉(⌽shape)⍴arrays
+      :Else
+          :If 1≠≢arrays ⋄ ∘∘∘ ⋄ :EndIf
+          arrays←⊃arrays
+      :EndSelect
+     
       var←shape name class arrays
     ∇
 
