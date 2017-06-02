@@ -90,7 +90,7 @@
           (name shape type)←vars[i;]
           :If 80=⎕DR type ⋄ :AndIf 2=⎕NC type ⋄ type←⍎type ⋄ :EndIf
           value←ref⍎name
-          data←type EncodeVariable name value
+          data←type shape EncodeVariable name value
            ⍝ /// Do compression here
           data ⎕NAPPEND tn
       :EndFor
@@ -119,44 +119,66 @@
      
     ∇
 
-    ∇ r←class EncodeVariable(name value);flags;global;logical;complex;nzmax;shape;length;data
+    ∇ r←larg EncodeVariable(name value);flags;global;logical;complex;nzmax;shape;length;data;z;i;apl;eltype;class
      ⍝ Decode a variable (recursive for matrix types)
-     
-      :If class=mxSPARSE_CLASS
-          nzmax←≢⊃value
-          ∘∘∘
-          shape←??
+
+      complex←logical←global←0      
+      (class shape)←larg
+      :If mxSPARSE_CLASS=class
+          nzmax←≢⊃value       ⍝ number of non-zero elements
+          complex←1
       :Else
-          shape←⍴value
+          (shape nzmax)← (⍴value) 0
       :EndIf
      
       r←4 int miMATRIX 65535  ⍝ Everything is a matrix, we will fill in length at the end
       r,←4 int miUINT32 8     ⍝ Array flag header
-      complex←logical←global←0
       flags←2⊥⌽0 0 0 0 complex logical global 0
-      r,←⎕UCS(⌽0 0 flags class),0 0 0 0 ⍝ Array flags
+      r,←(⎕UCS⌽0 0 flags class),(4 int nzmax) ⍝ Array flags
       r,←4 int miINT32,(4×≢shape),({⍵+2|⍵}⍴shape)↑shape ⍝ Dimensions
      
       :If 4≥length←≢name ⍝ Short name
-          r,←(2 int miINT8 length),4↑name
+          r,←(2 int miINT8 length),4↑name,4⍴⎕UCS 0
       :Else              ⍝ Long name
-          r,←(4 int miINT8 length),(8×⌈length×÷8)name
+          r,←(4 int miINT8 length),(8×⌈length×÷8)↑name,8⍴⎕UCS 0
       :EndIf
      
       :Select class
-      :Case mxCELL_CLASS
-          ∘∘∘
-      :Case mxSPARSE_CLASS
-          ∘∘∘
-      :CaseList ,mxDOUBLE_CLASS ⍝ non-nested formats
-          data←80 ⎕DR⊃0 645 ⎕DR,⍉value
-          r,←4 int miDOUBLE(≢data)
+
+      :Case mxCELL_CLASS                 
+          :If 80=⎕DR∊value
+             r,←∊{mxCHAR_CLASS EncodeVariable '' ⍵}¨value
+          :Else
+             ∘∘∘ ⍝ Only support char data in Cell Arrays
+          :EndIf     
+
+      :Case mxSPARSE_CLASS     
+          r,←4 int miINT32 (4×≢z←1⊃value)  ⍝ ir
+          r,←80 ⎕DR {⍵,(2|≢⍵)⍴0} ⊃0 dyINT32 ⎕DR z           
+          r,←4 int miINT32 (4×≢z←2⊃value)  ⍝ jc
+          r,←80 ⎕DR {⍵,(2|≢⍵)⍴0} ⊃0 dyINT32 ⎕DR z           
+          r,←4 int miDOUBLE (8×≢z←3⊃value) ⍝ pr
+          r,←80 ⎕DR ⊃0 dyDOUBLE ⎕DR z           
+
+      :CaseList z←mxCHAR_CLASS mxDOUBLE_CLASS ⍝ non-nested formats
+          apl←(163 645)[i←z⍳class]  
+          :If class=mxDOUBLE_CLASS
+          :AndIf 5≠i←dyINT32 dyINT16 dyINT8 dyBOOL⍳apl←⎕DR value
+              eltype←i⊃miINT32 miINT16 miINT8 miINT8 ⍝ We can use a smaller type
+          :Else
+              eltype←(miUINT16 miDOUBLE)[i]
+          :EndIf
+          data←80 ⎕DR⊃0 apl ⎕DR,⍉value
+          r,←(2*1+4<≢data) int eltype(≢data)
           r,←data
+
       :Else
           ∘∘∘ ⍝ Unsupported type
       :EndSelect
      
-      r[4+⍳4]←4 int ¯8+≢r ⍝ Adjust size of miMATRIX
+      r,←(8|8-8|≢r)⍴⎕UCS 0 ⍝ Word align
+      r[4+⍳4]←4 int (≢r)-8×1+2×class=miMATRIX ⍝ Adjust size (2 words dor miMATRIX)
+      
       →0
      
       :While offset<≢data                ⍝ Loop on elements
