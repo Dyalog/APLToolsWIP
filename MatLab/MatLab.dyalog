@@ -9,13 +9,29 @@
       r←r1 r2
     ∇
     
-    ∇ r←TestWrite;data
-      data←Read'c:\devt\matlabapl\testdataset.mat'
-      r←data Write 'c:\devt\matlabapl\testcopyset.mat'
+    ∇ r←TestWrite;data;f2;f1;new;old;hdrs;p;m
+      data←Read f1←'c:\devt\matlabapl\testdataset_uncompressed.mat'
+      r←data Write f2←'c:\devt\matlabapl\testcopyset.mat'
+      
+      (old new)←ReadFile¨ f1 f2
+      
+      :If (≢old)≠(≢new)
+          ⎕←'*** old/new length: ',(⍕≢old),'/',⍕≢new
+      :EndIf
+      
+      hdrs←128↑¨old new
+      :If 0≠p←128-(⌽m←⊃≠/hdrs)⍳1
+          ⎕←'*** Header difference:'
+          ⎕←p↑¨⍪hdrs,⊂(' ∧'[1+m])
+      :EndIf
+
     ∇
     
-    ∇ r←data Write name;header;now;vars;ref;v;sparse
+    ∇ r←data Write name;header;now;vars;ref;v;sparse;tn
       ⍝ Read a Matlab File in Little-Endian Format
+      
+      1 ⎕NDELETE name
+      tn←name ⎕NCREATE 0 
 
       now←⎕TS     
       header←'MATLAB 5.0 MAT-file, Platform: PCWIN64, Created on: ' 
@@ -23,14 +39,16 @@
       header,←' ',(now[2]⊃Months),' '
       header,←,'ZI2,< >,ZI2,<:>,ZI2,<:>,ZI2,< >,ZI4' ⎕FMT 1 5⍴now[3 4 5 6 1]
       header←(116↑header),(⎕UCS (8⍴0),0 1),'IM' ⍝ Version 0x0100 and Little Endian IM
-      
+      header ⎕NAPPEND tn 80
+
       :If 9=data.⎕NC 'Data' ⋄ ref←data.Data
       :Else ⋄ ref←data
       :EndIf     
       
       vars←ref.⎕nl -2
       :If 2=data.⎕NC 'Sparse' ⋄ sparse←data.Sparse
-      :ElseIf 2=data.⎕NC 'Variables' ⋄ sparse←
+      :ElseIf 2=data.⎕NC 'Variables' 
+          sparse←data.({(⍵[;3]∊'mxSPARSE_CLASS')/⍵[;1]}Variables)
       :Else ⋄ sparse←''
       :EndIf
 
@@ -38,6 +56,10 @@
 
       
       :EndFor
+      
+      r←⎕NSIZE tn
+      ⎕FUNTIE tn
+      →0
 
       :While offset<≢data
           (type size)←256(⊥⍤1)⎕UCS data[(offset+0 4)∘.+swap⍳4]
@@ -230,7 +252,7 @@
       r.⎕DF header
     ∇
 
-    ∇ data←ReadFile names;tn
+    ∇ data←ReadFile name;tn
       :Trap 0
           tn←name ⎕NTIE 0
           data←⎕NREAD tn 80 ¯1
