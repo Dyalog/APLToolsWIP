@@ -1,65 +1,105 @@
-﻿:Namespace MatLab 
+﻿:Namespace MatLab
     ⍝ Tools to read and write MatLab files from Dyalog APL
 
     ⎕ML←⎕IO←1 ⍝ Defaults
-        
-    ∇ r←TestRead;r1;r2
+
+    ∇ r←TestRead;r1;r2     
       r1←Read'c:\devt\matlabapl\testdataset.mat'
       r2←Read'c:\devt\matlabapl\testdataset_uncompressed.mat'
       r←r1 r2
     ∇
-    
-    ∇ r←TestWrite;data;f2;f1;new;old;hdrs;p;m
-      data←Read f1←'c:\devt\matlabapl\testdataset_uncompressed.mat'
+
+    ∇ r←TestWrite;data;f2;f1;new;old;hdrs;p;m;diff         
+      ⎕NUNTIE ⎕NNUMS
+      data←Read f1←'c:\devt\matlabapl\testdataset_nonulls.mat'
+      old←ReadFile f1
       r←data Write f2←'c:\devt\matlabapl\testcopyset.mat'
-      
-      (old new)←ReadFile¨ f1 f2
+      new←ReadFile f2
       
       :If (≢old)≠(≢new)
           ⎕←'*** old/new length: ',(⍕≢old),'/',⍕≢new
       :EndIf
-      
+     
       hdrs←128↑¨old new
       :If 0≠p←128-(⌽m←⊃≠/hdrs)⍳1
           ⎕←'*** Header difference:'
           ⎕←p↑¨⍪hdrs,⊂(' ∧'[1+m])
       :EndIf
 
+      :If ∨/diff←(128↓new)≠128↓(≢new)↑old
+          ⎕←(+/diff)' differences, first one at byte ',⍕diff⍳1
+      :Else
+          ⎕←'[No other differences]'
+      :EndIf     
     ∇
-    
-    ∇ r←data Write name;header;now;vars;ref;v;sparse;tn
+
+    ∇ r←data Write name;header;now;vars;ref;v;sparse;tn;i;value;z;dr;shape;type;int
       ⍝ Read a Matlab File in Little-Endian Format
       
+      int←{⎕UCS ,⌽⍉(⍺⍴256)⊤⍵} ⍝ litte-endian ⍺-byte integer
+
       1 ⎕NDELETE name
-      tn←name ⎕NCREATE 0 
-
-      now←⎕TS     
-      header←'MATLAB 5.0 MAT-file, Platform: PCWIN64, Created on: ' 
-      header,←(1+7|¯1+2 ⎕NQ '.' 'DateToIDN'(3↑now))⊃Days ⍝ weekday
+      tn←name ⎕NCREATE 0
+     
+      now←⎕TS
+      header←'MATLAB 5.0 MAT-file, Platform: PCWIN64, Created on: '
+      header,←(1+7|¯1+2 ⎕NQ'.' 'DateToIDN'(3↑now))⊃Days ⍝ weekday
       header,←' ',(now[2]⊃Months),' '
-      header,←,'ZI2,< >,ZI2,<:>,ZI2,<:>,ZI2,< >,ZI4' ⎕FMT 1 5⍴now[3 4 5 6 1]
-      header←(116↑header),(⎕UCS (8⍴0),0 1),'IM' ⍝ Version 0x0100 and Little Endian IM
+      header,←,'ZI2,< >,ZI2,<:>,ZI2,<:>,ZI2,< >,ZI4'⎕FMT 1 5⍴now[3 4 5 6 1]
+      header←(116↑header),(⎕UCS(8⍴0),0 1),'IM' ⍝ Version 0x0100 and Little Endian IM
       header ⎕NAPPEND tn 80
-
-      :If 9=data.⎕NC 'Data' ⋄ ref←data.Data
-      :Else ⋄ ref←data
+     
+      :If 9=(ref←data).⎕NC'Data' ⋄ ref←data.Data ⋄ :EndIf
+     
+     
+      :If 2=data.⎕NC'Variables' ⋄ vars←data.Variables
+      :Else
+          vars←⍪((ref.⎕NL-2),⍤1)⍬ mxDOUBLE_CLASS
+          :If 2=data.⎕NC'Sparse' ⋄
+          :AndIf ∧/data.Sparse∊vars[;1]
+              vars[{⍵/⍳⍴⍵}vars[;3]∊data.Sparse;3]←'mxSPARSE_CLASS'
+              vars←(~vars[;1]∊⊂'Sparse')⌿vars
+          :EndIf
+     
+          :For i :In ⍳≢vars
+              dr←⎕DR value←ref⍎i⊃vars
+              :Select ⎕DR value
+              :Case dyNESTED
+                  :If 'mxSPARSE_CLASS'=⊃vars[i;3]
+                      :If 3≠⍴value
+                          ∘∘∘ ⍝ Sparse array which is not a 3-element vector
+                      :EndIf
+                  :Else ⍝ Not sparse
+                      :If ∧/80=⎕DR¨value
+                      :AndIf ∧/1=≢¨shapes←⍴¨value   ⍝ All vectors
+                          value←(1,¨shapes)⍴¨values ⍝ Make 1-row matrices to keep MatLab happy
+                      :EndIf
+                      vars[i;3]←⊂'mxCELL_CLASS'     
+                  :EndIf
+              :CaseList z←,dyDOUBLE
+                  vars[i;3]←(⊂'mxDOUBLE_CLASS')[z⍳dr]
+              :Else
+                  ∘∘∘ ⍝ as yet unsupported type
+              :EndSelect
+     
+          :EndFor
       :EndIf     
-      
-      vars←ref.⎕nl -2
-      :If 2=data.⎕NC 'Sparse' ⋄ sparse←data.Sparse
-      :ElseIf 2=data.⎕NC 'Variables' 
-          sparse←data.({(⍵[;3]∊'mxSPARSE_CLASS')/⍵[;1]}Variables)
-      :Else ⋄ sparse←''
-      :EndIf
+     
+      :For i :In ⍳≢vars  
+           (name shape type)←vars[i;]
+           :If 80=⎕DR type ⋄ :AndIf 2=⎕NC type ⋄ type←⍎type ⋄ :EndIf
+           value←ref⍎name
+           data←type EncodeVariable name value
+           ⍝ /// Do compression here
+           data ⎕NAPPEND tn
+      :EndFor             
 
-      :For v :In vars
-
-      
-      :EndFor
-      
+     
       r←⎕NSIZE tn
       ⎕FUNTIE tn
       →0
+      
+      ⍝⍝⍝ ↓↓↓ Code to be salvaged for compresion below
 
       :While offset<≢data
           (type size)←256(⊥⍤1)⎕UCS data[(offset+0 4)∘.+swap⍳4]
@@ -74,61 +114,50 @@
               :EndIf
           :EndIf
           vars,←⊂type DecodeVariable var
-      :EndWhile           
+      :EndWhile     
+      
+    ∇
 
-      :If offset≠≢data
-          'Truncated file'⎕SIGNAL 11
-      :EndIf          
-        
-      r.Data←⎕NS ''
-      :If 1=≢vars←↑vars
-          ⍎'r.Data.(',(⍕vars[1;2]),')←vars[1;4]'
-      :Else
-          ⍎'r.Data.(',(⍕vars[;2]),')←vars[;4]'
-      :EndIf
-
-      z←vars[;2 1 3]
-      classes←↓{(⍵[;1 2]∧.='mx')⌿⍵}'m' ⎕NL 2
-      z[;3]←classes[(⍎⍕classes)⍳z[;3]]
-      r.Variables←z
-       
-      r.⎕DF header
-    ∇   
-
-    ∇ var←type DecodeVariable data;flags;class;logical;global;complex;z;rank;size;offset;shape;len;name;arrays;bytes;dr;i;t;nzmax;u;width;eltype
+  ∇ r←class EncodeVariable (name value);flags;global;logical;complex;nzmax;shape;length;data
      ⍝ Decode a variable (recursive for matrix types)
+      
 
-      :Select type
-      :Case miMATRIX
-          assert(miUINT32 8)≡int 2 4⍴data
-          (flags class)←¯2↑⎕UCS swap data[8+⍳4]
           :If class=mxSPARSE_CLASS
-              nzmax←int data[12+⍳4] ⍝ # non-zero elements
-          :EndIf
-          :If flags≠0
-              (logical global complex)←(⌽(8⍴2)⊤flags)[5 6 7]
-          :EndIf                               
-
-          (z rank)←int 2 4⍴data[16+⍳8]
-          assert z=miINT32 ⋄ size←4
-          rank←rank÷size
-          shape←int(rank size)⍴data[offset←24+⍳size×rank]
-          offset←⊃⌽offset              
-
-          :If miINT8=int data[offset+⍳4]     ⍝ 4-byte length type indicator?
-              len←int data[offset+4+⍳4]
-              name←data[offset+8+⍳len]
-              offset←offset+8+8×⌈len÷8       ⍝ Padding at end of long name
-
-          :ElseIf miINT8=int data[offset+⍳2] ⍝ 4 or less elements: length & type 2 bytes each
-              len←int data[offset+2+⍳2]
-              name←data[offset+4+⍳len]
-              offset←offset+8                ⍝ Short name guaranteed to be in this 8-byte block
+              nzmax←≢⊃value
+              ∘∘∘
+              shape←??
           :Else
-              ∘∘∘ ⍝ Unable to decode name
-          :EndIf            
+              shape←⍴value
+          :EndIf     
+      
+      r←4 int miMATRIX 65535  ⍝ Everything is a matrix, we will fill in length at the end
+      r,←4 int miUINT32 8     ⍝ Array flag header
+      complex←logical←global←0
+      flags←2⊥⌽0 0 0 0 complex logical global 0
+      r,←⎕UCS (⌽0 0 flags class),0 0 0 0 ⍝ Array flags
+      r,←4 int miINT32,(4×≢shape),({⍵+2|⍵}⍴shape)↑shape ⍝ Dimensions
 
-          arrays←⍬  
+      :If 4≥length←≢name ⍝ Short name
+          r,←(2 int miINT8 length),4↑name
+      :Else              ⍝ Long name
+          r,←(4 int miINT8 length),(8×⌈length×÷8)name
+      :EndIf 
+            
+      :Select class
+      :Case mxCELL_CLASS  
+         ∘∘∘
+      :Case mxSPARSE_CLASS
+         ∘∘∘
+      :CaseList ,mxDOUBLE_CLASS ⍝ non-nested formats
+          data←80 ⎕DR ⊃0 645 ⎕DR ,⍉value
+          r,←4 int miDOUBLE (≢data)
+          r,←data
+      :Else
+         ∘∘∘ ⍝ Unsupported type
+      :EndSelect     
+      
+      r[4+⍳4]←4 int ¯8+≢r ⍝ Adjust size of miMATRIX
+      →0
 
           :While offset<≢data                ⍝ Loop on elements
               :If 0∧.≠(eltype bytes)←int 2 2⍴data[offset+⍳4] ⍝ "Compressed" type & length?
@@ -144,47 +173,144 @@
                   t←eltype DecodeVariable data[offset+⍳bytes]
                   assert 0=≢2⊃t
                   t←4⊃t ⍝ Just the data value
-
-              :Case miUTF8       
-                  t←shape⍴'UTF-8' ⎕UCS ⎕UCS data[offset+⍳bytes] 
-
-              :Case miDOUBLE                           
+     
+              :Case miUTF8
+                  t←shape⍴'UTF-8'⎕UCS ⎕UCS data[offset+⍳bytes]
+     
+              :Case miDOUBLE
                   ⍝ turn NaNs into zero
                   data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
                   t←dyDOUBLE ⎕DR data[offset+⍳bytes]
-
-              :CaseList miINTs ⍝ Signed Numeric     
-                  dr←(miINTs⍳eltype)⊃dyINTs                  
-                  t←dr ⎕DR data[offset+⍳bytes]     
-                  
+     
+              :CaseList miINTs ⍝ Signed Numeric
+                  dr←(miINTs⍳eltype)⊃dyINTs
+                  t←dr ⎕DR data[offset+⍳bytes]
+     
               :CaseList miUINTs
                   width←(miUINTs⍳eltype)⊃1 2 4 8
-                  t←int ((×/shape),width)⍴data[offset+⍳bytes] 
-                                   
+                  t←int((×/shape),width)⍴data[offset+⍳bytes]
+     
               :Else
                   ∘∘∘ ⍝ as yet unsupported type
-              :EndSelect  
-              
+              :EndSelect
+     
               :If (class≠mxSPARSE_CLASS)∧~eltype∊miUTF8 miMATRIX
                   t←⍉(⌽shape)⍴t
               :EndIf
-
+     
               arrays,←⊂t
               offset+←bytes
-              offset←8×⌈offset÷8     
+              offset←8×⌈offset÷8
           :EndWhile
           assert offset=≢data ⍝ no incomplete arrays
-             
+     
           :Select class
           :Case mxSPARSE_CLASS
               ⍝ Leave as 3 vectors
-          :Case mxCELL_CLASS 
+          :Case mxCELL_CLASS
               :If (1≠≢arrays)∧80≠⎕DR⊃arrays
-              :AndIf 1∧.=≢¨arrays 
-                 arrays←⎕UCS¨arrays ⍝ uINT16 encoded chars, we think
+              :AndIf 1∧.=≢¨arrays
+                  arrays←⎕UCS¨arrays ⍝ uINT16 encoded chars, we think
               :EndIf
               arrays←⍉(⌽shape)⍴arrays
-          :Else         
+          :Else
+              :If 1≠≢arrays ⋄ ∘∘∘ ⋄ :EndIf
+              arrays←⊃arrays
+          :EndSelect
+
+      var←shape name class arrays
+    ∇
+
+    ∇ var←type DecodeVariable data;flags;class;logical;global;complex;z;rank;size;offset;shape;len;name;arrays;bytes;dr;i;t;nzmax;u;width;eltype
+     ⍝ Decode a variable (recursive for matrix types)
+     
+      :Select type
+      :Case miMATRIX
+          assert(miUINT32 8)≡int 2 4⍴data
+          (flags class)←¯2↑⎕UCS swap data[8+⍳4]
+          :If class=mxSPARSE_CLASS
+              nzmax←int data[12+⍳4] ⍝ # non-zero elements
+          :EndIf
+          :If flags≠0
+              (logical global complex)←(⌽(8⍴2)⊤flags)[5 6 7]
+          :EndIf
+     
+          (z rank)←int 2 4⍴data[16+⍳8]
+          assert z=miINT32 ⋄ size←4
+          rank←rank÷size
+          shape←int(rank size)⍴data[offset←24+⍳size×rank]
+          offset←⊃⌽offset
+     
+          :If miINT8=int data[offset+⍳4]     ⍝ 4-byte length type indicator?
+              len←int data[offset+4+⍳4]
+              name←data[offset+8+⍳len]
+              offset←offset+8+8×⌈len÷8       ⍝ Padding at end of long name
+     
+          :ElseIf miINT8=int data[offset+⍳2] ⍝ 4 or less elements: length & type 2 bytes each
+              len←int data[offset+2+⍳2]
+              name←data[offset+4+⍳len]
+              offset←offset+8                ⍝ Short name guaranteed to be in this 8-byte block
+          :Else
+              ∘∘∘ ⍝ Unable to decode name
+          :EndIf
+     
+          arrays←⍬
+     
+          :While offset<≢data                ⍝ Loop on elements
+              :If 0∧.≠(eltype bytes)←int 2 2⍴data[offset+⍳4] ⍝ "Compressed" type & length?
+              :AndIf bytes≤4
+                  offset+←4
+              :Else                                     ⍝ 4-byte type & length
+                  (eltype bytes)←int 2 4⍴data[offset+⍳8]
+                  offset+←8
+              :EndIf
+     
+              :Select eltype      ⍝ Element type
+              :Case miMATRIX ⍝ nested element
+                  t←eltype DecodeVariable data[offset+⍳bytes]
+                  assert 0=≢2⊃t
+                  t←4⊃t ⍝ Just the data value
+     
+              :Case miUTF8
+                  t←shape⍴'UTF-8'⎕UCS ⎕UCS data[offset+⍳bytes]
+     
+              :Case miDOUBLE
+                  ⍝ turn NaNs into zero
+                  data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
+                  t←dyDOUBLE ⎕DR data[offset+⍳bytes]
+     
+              :CaseList miINTs ⍝ Signed Numeric
+                  dr←(miINTs⍳eltype)⊃dyINTs
+                  t←dr ⎕DR data[offset+⍳bytes]
+     
+              :CaseList miUINTs
+                  width←(miUINTs⍳eltype)⊃1 2 4 8
+                  t←int((×/shape),width)⍴data[offset+⍳bytes]
+     
+              :Else
+                  ∘∘∘ ⍝ as yet unsupported type
+              :EndSelect
+     
+              :If (class≠mxSPARSE_CLASS)∧~eltype∊miUTF8 miMATRIX
+                  t←⍉(⌽shape)⍴t
+              :EndIf
+     
+              arrays,←⊂t
+              offset+←bytes
+              offset←8×⌈offset÷8
+          :EndWhile
+          assert offset=≢data ⍝ no incomplete arrays
+     
+          :Select class
+          :Case mxSPARSE_CLASS
+              ⍝ Leave as 3 vectors
+          :Case mxCELL_CLASS
+              :If (1≠≢arrays)∧80≠⎕DR⊃arrays
+              :AndIf 1∧.=≢¨arrays
+                  arrays←⎕UCS¨arrays ⍝ uINT16 encoded chars, we think
+              :EndIf
+              arrays←⍉(⌽shape)⍴arrays
+          :Else
               :If 1≠≢arrays ⋄ ∘∘∘ ⋄ :EndIf
               arrays←⊃arrays
           :EndSelect
@@ -209,11 +335,11 @@
       :Case 'MI' ⋄ swap←⊢ ⋄ r.LittleEndian←0
       :Else
           'File does not contain MI or IM at position 127/128'⎕SIGNAL 11
-      :EndSelect   
-      
+      :EndSelect
+     
       int←{256(⊥⍤1)⎕UCS swap ⍵}
       NaN←⎕UCS swap 8↑255 248
-
+     
       r.VersionNo←'0x',(⎕D,'ABCDEF')[1+,⍉16 16⊤swap ⎕UCS data[125 126]]
      
       offset←128
@@ -231,24 +357,24 @@
               :EndIf
           :EndIf
           vars,←⊂type DecodeVariable var
-      :EndWhile           
-
+      :EndWhile
+     
       :If offset≠≢data
           'Truncated file'⎕SIGNAL 11
-      :EndIf          
-        
-      r.Data←⎕NS ''
+      :EndIf
+     
+      r.Data←⎕NS''
       :If 1=≢vars←↑vars
           ⍎'r.Data.(',(⍕vars[1;2]),')←vars[1;4]'
       :Else
           ⍎'r.Data.(',(⍕vars[;2]),')←vars[;4]'
       :EndIf
-
+     
       z←vars[;2 1 3]
-      classes←↓{(⍵[;1 2]∧.='mx')⌿⍵}'m' ⎕NL 2
+      classes←↓{(⍵[;1 2]∧.='mx')⌿⍵}'m'⎕NL 2
       z[;3]←classes[(⍎⍕classes)⍳z[;3]]
       r.Variables←z
-       
+     
       r.⎕DF header
     ∇
 
@@ -261,16 +387,16 @@
           data←''
       :EndTrap
     ∇
-    
- 
+
+
     ∇ r←Summary ml;props;classes;z
     ⍝ Display a summary of the contents of the result of a Read
      
       props←'VersionTxt' 'Platform' 'Created' 'LittleEndian' 'VersionNo'
       r←props,⍪⍕¨ml⍎⍕props
-      
-      classes←↓{(⍵[;1 2]∧.='mx')⌿⍵}'m' ⎕NL 2
-      r⍪←'Variables'('Name' 'Shape' 'Type'⍪ml.Variables)   
+     
+      classes←↓{(⍵[;1 2]∧.='mx')⌿⍵}'m'⎕NL 2
+      r⍪←'Variables'('Name' 'Shape' 'Type'⍪ml.Variables)
     ∇
 
     ∇ assert x
@@ -279,54 +405,54 @@
 
     :Section Enums
 
-       mxCELL_CLASS←1
-       mxSTRUCT_CLASS←2
-       mxOBJECT_CLASS←3
-       mxCHAR_CLASS←4
-       mxSPARSE_CLASS←5
-       mxDOUBLE_CLASS←6
-       mxSINGLE_CLASS←7
-       mxINT8_CLASS←8
-       mxUNINT8_CLASS←9
-       mxINT16_CLASS←10
-       mxUINT16_CLASS←11
-       mxINT32_CLASS←12
-       mxUINT32_CLASS←13
-       mxINT64_CLASS←14
-       mxUINT64_CLASS←15
+    mxCELL_CLASS←1
+    mxSTRUCT_CLASS←2
+    mxOBJECT_CLASS←3
+    mxCHAR_CLASS←4
+    mxSPARSE_CLASS←5
+    mxDOUBLE_CLASS←6
+    mxSINGLE_CLASS←7
+    mxINT8_CLASS←8
+    mxUNINT8_CLASS←9
+    mxINT16_CLASS←10
+    mxUINT16_CLASS←11
+    mxINT32_CLASS←12
+    mxUINT32_CLASS←13
+    mxINT64_CLASS←14
+    mxUINT64_CLASS←15
 
-       miINT8←1
-       miUINT8←2
-       miINT16←3
-       miUINT16←4
-       miINT32←5
-       miUINT32←6
-       miSINGLE←7
-       miDOUBLE←9
-       miINT64←12
-       miUINT64←13
-       miMATRIX←14
-       miCOMPRESSED←15
-       miUTF8←16
-       miUTF16←17
-       miUTF32←18
+    miINT8←1
+    miUINT8←2
+    miINT16←3
+    miUINT16←4
+    miINT32←5
+    miUINT32←6
+    miSINGLE←7
+    miDOUBLE←9
+    miINT64←12
+    miUINT64←13
+    miMATRIX←14
+    miCOMPRESSED←15
+    miUTF8←16
+    miUTF16←17
+    miUTF32←18
 
-       dyBOOL←11
-       dyCHAR←80
-       dyINT8←83
-       dyINT16←163
-       dyINT32←323
-       dyNESTED←326
-       dyDOUBLE←645
-       dyDECF←1287
-       dyCOMPLEX←1289   
-       
-       miUINTs←miUINT8 miUINT16 miUINT32 miUINT64
-       miINTs←miINT8 miINT16 miINT32 ⍝ INT64 not yet supported
-       dyINTs←dyINT8 dyINT16 dyINT32 
-       
-       Months←'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'
-       Days←'Mon' 'Tue' 'Wed' 'Thu' 'Fri' 'Sat' 'Sun'
+    dyBOOL←11
+    dyCHAR←80
+    dyINT8←83
+    dyINT16←163
+    dyINT32←323
+    dyNESTED←326
+    dyDOUBLE←645
+    dyDECF←1287
+    dyCOMPLEX←1289
+
+    miUINTs←miUINT8 miUINT16 miUINT32 miUINT64
+    miINTs←miINT8 miINT16 miINT32 ⍝ INT64 not yet supported
+    dyINTs←dyINT8 dyINT16 dyINT32
+
+    Months←'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'
+    Days←'Mon' 'Tue' 'Wed' 'Thu' 'Fri' 'Sat' 'Sun'
 
     :EndSection
 
