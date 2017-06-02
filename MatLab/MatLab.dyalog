@@ -1,7 +1,8 @@
 ﻿:Namespace MatLab
     ⍝ Tools to read and write MatLab files from Dyalog APL
-
-    ⎕ML←⎕IO←1 ⍝ Defaults
+    
+    Compress←0   ⍝ Set to 1 to gzip each array on export
+    NaNValue←⍬   ⍝ Represent NaNs as zeros
 
     ∇ r←TestRead;r1;r2
       r1←Read'c:\devt\matlabapl\testdataset.mat'
@@ -11,7 +12,7 @@
 
     ∇ r←TestWrite;data;f2;f1;new;old;hdrs;p;m;diff
       ⎕NUNTIE ⎕NNUMS
-      data←Read f1←'c:\devt\matlabapl\testdataset_nonulls.mat'
+      data←Read f1←'c:\devt\matlabapl\testdataset_uncompressed.mat'
       old←ReadFile f1
       r←data Write f2←'c:\devt\matlabapl\testcopyset.mat'
       new←ReadFile f2
@@ -24,6 +25,7 @@
      
       :If ∨/diff←(128↓new)≠128↓(≢new)↑old
           ⎕←(+/diff)' differences, first one at byte ',⍕diff⍳1
+          ∘∘∘
       :Else
           ⎕←'[No other differences]'
       :EndIf
@@ -94,8 +96,7 @@
            ⍝ /// Do compression here
           data ⎕NAPPEND tn
       :EndFor
-     
-     
+          
       r←⎕NSIZE tn
       ⎕FUNTIE tn
       →0
@@ -119,7 +120,7 @@
      
     ∇
 
-    ∇ r←larg EncodeVariable(name value);flags;global;logical;complex;nzmax;shape;length;data;z;i;apl;eltype;class
+    ∇ r←larg EncodeVariable(name value);flags;global;logical;complex;nzmax;shape;length;data;z;i;apl;eltype;class;nans;j
      ⍝ Decode a variable (recursive for matrix types)
 
       complex←logical←global←0      
@@ -161,14 +162,22 @@
           r,←80 ⎕DR ⊃0 dyDOUBLE ⎕DR z           
 
       :CaseList z←mxCHAR_CLASS mxDOUBLE_CLASS ⍝ non-nested formats
-          apl←(163 645)[i←z⍳class]  
-          :If class=mxDOUBLE_CLASS
-          :AndIf 5≠i←dyINT32 dyINT16 dyINT8 dyBOOL⍳apl←⎕DR value
-              eltype←i⊃miINT32 miINT16 miINT8 miINT8 ⍝ We can use a smaller type
+          apl←(163 645)[i←z⍳class] 
+           
+          nans←⍬
+          :If class=mxDOUBLE_CLASS    
+              value←,value
+              value[nans←(value∊⊂NaNValue)/⍳⍴value]←0
+          :AndIf (0=⍴nans)∧5≠j←dyINT32 dyINT16 dyINT8 dyBOOL⍳apl←⎕DR value
+              eltype←j⊃miINT32 miINT16 miINT8 miINT8 ⍝ We can use a smaller type
           :Else
-              eltype←(miUINT16 miDOUBLE)[i]
+              eltype←(miUINT16 miDOUBLE)[i] 
+          :EndIf                  
+
+          data←80 ⎕DR⊃0 apl ⎕DR,⍉value           
+          :If 0≠≢nans
+              data[(8×nans-1)∘.+⍳8]←((⍴nans),8)⍴⌽NaN
           :EndIf
-          data←80 ⎕DR⊃0 apl ⎕DR,⍉value
           r,←(2*1+4<≢data) int eltype(≢data)
           r,←data
 
@@ -177,70 +186,7 @@
       :EndSelect
      
       r,←(8|8-8|≢r)⍴⎕UCS 0 ⍝ Word align
-      r[4+⍳4]←4 int (≢r)-8×1+2×class=miMATRIX ⍝ Adjust size (2 words dor miMATRIX)
-      
-      →0
-     
-      :While offset<≢data                ⍝ Loop on elements
-          :If 0∧.≠(eltype bytes)←int 2 2⍴data[offset+⍳4] ⍝ "Compressed" type & length?
-          :AndIf bytes≤4
-              offset+←4
-          :Else                                     ⍝ 4-byte type & length
-              (eltype bytes)←int 2 4⍴data[offset+⍳8]
-              offset+←8
-          :EndIf
-     
-          :Select eltype      ⍝ Element type
-          :Case miMATRIX ⍝ nested element
-              t←eltype DecodeVariable data[offset+⍳bytes]
-              assert 0=≢2⊃t
-              t←4⊃t ⍝ Just the data value
-     
-          :Case miUTF8
-              t←shape⍴'UTF-8'⎕UCS ⎕UCS data[offset+⍳bytes]
-     
-          :Case miDOUBLE
-                  ⍝ turn NaNs into zero
-              data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
-              t←dyDOUBLE ⎕DR data[offset+⍳bytes]
-     
-          :CaseList miINTs ⍝ Signed Numeric
-              dr←(miINTs⍳eltype)⊃dyINTs
-              t←dr ⎕DR data[offset+⍳bytes]
-     
-          :CaseList miUINTs
-              width←(miUINTs⍳eltype)⊃1 2 4 8
-              t←int((×/shape),width)⍴data[offset+⍳bytes]
-     
-          :Else
-              ∘∘∘ ⍝ as yet unsupported type
-          :EndSelect
-     
-          :If (class≠mxSPARSE_CLASS)∧~eltype∊miUTF8 miMATRIX
-              t←⍉(⌽shape)⍴t
-          :EndIf
-     
-          arrays,←⊂t
-          offset+←bytes
-          offset←8×⌈offset÷8
-      :EndWhile
-      assert offset=≢data ⍝ no incomplete arrays
-     
-      :Select class
-      :Case mxSPARSE_CLASS
-              ⍝ Leave as 3 vectors
-      :Case mxCELL_CLASS
-          :If (1≠≢arrays)∧80≠⎕DR⊃arrays
-          :AndIf 1∧.=≢¨arrays
-              arrays←⎕UCS¨arrays ⍝ uINT16 encoded chars, we think
-          :EndIf
-          arrays←⍉(⌽shape)⍴arrays
-      :Else
-          :If 1≠≢arrays ⋄ ∘∘∘ ⋄ :EndIf
-          arrays←⊃arrays
-      :EndSelect
-     
-      var←shape name class arrays
+      r[4+⍳4]←4 int (≢r)-8×1+2×class=miMATRIX ⍝ Adjust size (2 extra words for miMATRIX)  
     ∇
 
     ∇ var←type DecodeVariable data;flags;class;logical;global;complex;z;rank;size;offset;shape;len;name;arrays;bytes;dr;i;t;nzmax;u;width;eltype
@@ -297,9 +243,11 @@
                   t←shape⍴'UTF-8'⎕UCS ⎕UCS data[offset+⍳bytes]
      
               :Case miDOUBLE
-                  ⍝ turn NaNs into zero
-                  data[(¯1+⍳8)∘.+(NaN⍷data)/⍳⍴data]←⎕UCS 0
-                  t←dyDOUBLE ⎕DR data[offset+⍳bytes]
+                  ⍝ turn NaNs into NaNValue
+                  z←data[offset+⍳bytes]
+                  z[(¯1+⍳8)∘.+i←((swap NaN)⍷z)/⍳⍴z]←⎕UCS 0
+                  t←dyDOUBLE ⎕DR z
+                  t[⌈i÷8]←⊂NaNValue
      
               :CaseList miINTs ⍝ Signed Numeric
                   dr←(miINTs⍳eltype)⊃dyINTs
@@ -342,7 +290,7 @@
       var←shape name class arrays
     ∇
 
-    ∇ r←Read name;data;header;offset;vars;type;size;var;compressed;classes;z;int;NaN;swap
+    ∇ r←Read name;data;header;offset;vars;type;size;var;compressed;classes;z;int;swap
     ⍝ Read a Matlab File
      
       :If 0=≢data←ReadFile name
@@ -360,7 +308,6 @@
       :EndSelect
      
       int←{256(⊥⍤1)⎕UCS swap ⍵}
-      NaN←⎕UCS swap 8↑255 248
      
       r.VersionNo←'0x',(⎕D,'ABCDEF')[1+,⍉16 16⊤swap ⎕UCS data[125 126]]
      
@@ -425,7 +372,9 @@
       'Assertion Failed'⎕SIGNAL x↓11
     ∇
 
-    :Section Enums
+    :Section Constants
+    
+    ⎕ML←⎕IO←1  ⍝ Do not change these
 
     mxCELL_CLASS←1
     mxSTRUCT_CLASS←2
@@ -475,6 +424,8 @@
 
     Months←'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'
     Days←'Mon' 'Tue' 'Wed' 'Thu' 'Fri' 'Sat' 'Sun'
+
+    NaN←⎕UCS 8↑255 248
 
     :EndSection
 
