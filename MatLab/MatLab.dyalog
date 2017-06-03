@@ -1,39 +1,73 @@
 ﻿:Namespace MatLab
     ⍝ Tools to read and write MatLab files from Dyalog APL
-    
-    Compress←0   ⍝ Set to 1 to gzip each array on export
-    NaNValue←⍬   ⍝ Represent NaNs as zeros
 
-    ∇ r←TestRead;r1;r2
-      r1←Read'c:\devt\matlabapl\testdataset.mat'
-      r2←Read'c:\devt\matlabapl\testdataset_uncompressed.mat'
-      r←r1 r2
+    Compress←1   ⍝ Set to 0 to NOT gzip each array on export
+    NaNValue←⍬   ⍝ Represent NaNs as ⍬
+    
+    
+    ∇r←ToSparse array;t;m;n  
+    ⍝ Convert dense APL array to MatLab Sparse array
+    n←+/m←0≠t←⍉array
+    r←((,m)/,(⍴m)⍴¯1+⍳≢array)(0,+\n)((,m)/,t) 
+    ∇
+    
+    ∇r←FromSparse (shape data);ci;values;jc;ri
+     ⍝ Convert MatLab Sparse array to a Dense APL Array
+      (ri jc values)←data
+      ci←(¯2-/jc)/⍳2⊃shape
+      r←shape⍴0
+      r[(1+ri),¨ci]←values ⍝ could be optimised
     ∇
 
-    ∇ r←TestWrite;data;f2;f1;new;old;hdrs;p;m;diff
+    ∇ r←Test;data;f2;f1;new;old;hdrs;p;m;diff;d2;folder;file;d1;b2;b1;common;Compress;i;v1;name;shape;type;identical;sparse;s;t
       ⎕NUNTIE ⎕NNUMS
-      data←Read f1←'c:\devt\matlabapl\testdataset_uncompressed.mat'
-      old←ReadFile f1
-      r←data Write f2←'c:\devt\matlabapl\testcopyset.mat'
-      new←ReadFile f2
-     
-      hdrs←128↑¨old new
-      :If 0≠p←128-(⌽m←⊃≠/hdrs)⍳1
-          ⎕←'*** Header difference:'
-          ⎕←p↑¨⍪hdrs,⊂(' ∧'[1+m])
-      :EndIf
-     
-      :If ∨/diff←(128↓new)≠128↓(≢new)↑old
-          ⎕←(+/diff)' differences, first one at byte ',⍕diff⍳1
-          ∘∘∘
-      :Else
-          ⎕←'[No other differences]'
-      :EndIf
-     
-      :If (≢old)≠(≢new)
-          ⎕←'*** old/new length: ',(⍕≢old),'/',⍕≢new
-      :EndIf
-     
+      folder←'C:\Devt\MatLabAPL\'
+      
+      :For file :In 'sparse' 'testdataset_nonulls' 'testdataset_uncompressed' 'testdataset'
+           
+           Compress←(⊂file)∊'sparse' 'testdataset'
+           ⎕←'Testing "',file,'.mat"',Compress/ '(using zlib compression)'
+           d1←Read f1←folder,file,'.mat'
+           b1←ReadFile f1
+           
+           {} d1 Write f2←folder,file,'-copy.mat'
+           d2←Read f2   
+           b2←ReadFile f2
+           
+           :If (124↓b1)≡124↓b2
+               ⎕←'   File is identical except for header.'
+           :ElseIf (≢b1)≠≢b2
+               ⎕←'   Copy size = ',(⍕≢b2),', original file size was ',⍕≢b1
+           :ElseIf
+               ⎕←'   Files are same size but ',(⍕(124↓b1)+.≠124↓b2),' bytes are different following the header.'
+           :EndIf
+           
+           :If d1.Variables≢d2.Variables
+               ⎕←'   Variable lists not identical:'
+               ⎕←'Original' 'Copy',⍉⍪(d1 d2).Variables
+           :EndIf
+           
+           common←↑(↓d1.Variables)∩↓d2.Variables
+           identical←⍬
+           :For i :In ⍳≢common
+                (name shape type)←common[i;]
+                :If (v1←d1.Data⍎name)≡v2←d2.Data⍎name
+                    identical,←⊂name
+                :Else
+                    ∘∘∘
+                :EndIf
+                :If type≡'mxSPARSE_CLASS'             
+                    t←FromSparse shape v1  
+                    :If v1≢ToSparse t
+                        ∘∘∘ ⍝ to/from Sparse worked 
+                    :Else
+                        ⎕←'To/From Sparse OK: ',name
+                    :EndIf
+                :EndIf           
+           :EndFor                  
+           '   Identical after read/write/read: ',,⍕identical
+      :EndFor
+
     ∇
 
     ∇ r←data Write name;header;now;vars;ref;v;sparse;tn;i;value;z;dr;shape;type;int
@@ -53,8 +87,7 @@
       header ⎕NAPPEND tn 80
      
       :If 9=(ref←data).⎕NC'Data' ⋄ ref←data.Data ⋄ :EndIf
-     
-     
+          
       :If 2=data.⎕NC'Variables' ⋄ vars←data.Variables
       :Else
           vars←⍪((ref.⎕NL-2),⍤1)⍬ mxDOUBLE_CLASS
@@ -83,8 +116,7 @@
                   vars[i;3]←(⊂'mxDOUBLE_CLASS')[z⍳dr]
               :Else
                   ∘∘∘ ⍝ as yet unsupported type
-              :EndSelect
-     
+              :EndSelect   
           :EndFor
       :EndIf
      
@@ -93,43 +125,27 @@
           :If 80=⎕DR type ⋄ :AndIf 2=⎕NC type ⋄ type←⍎type ⋄ :EndIf
           value←ref⍎name
           data←type shape EncodeVariable name value
-           ⍝ /// Do compression here
+          :If Compress
+              data←80 ⎕DR 2⊃2(219⌶)83 ⎕DR data
+              data←(4 int miCOMPRESSED(≢data)),data
+          :EndIf
           data ⎕NAPPEND tn
       :EndFor
-          
+     
       r←⎕NSIZE tn
       ⎕FUNTIE tn
-      →0
-     
-      ⍝⍝⍝ ↓↓↓ Code to be salvaged for compresion below
-     
-      :While offset<≢data
-          (type size)←256(⊥⍤1)⎕UCS data[(offset+0 4)∘.+swap⍳4]
-          var←data[(offset+8)+⍳size]
-          offset+←size+8
-          :If compressed←type=miCOMPRESSED ⍝ zlib compressed
-              var←80 ⎕DR ¯2(219⌶)83 ⎕DR var
-              (type size)←256(⊥⍤1)⎕UCS swap 2 4⍴var
-              var←8↓var
-              :If size≠≢var
-                  ∘∘∘ ⍝ Assertion failed
-              :EndIf
-          :EndIf
-          vars,←⊂type DecodeVariable var
-      :EndWhile
-     
     ∇
 
     ∇ r←larg EncodeVariable(name value);flags;global;logical;complex;nzmax;shape;length;data;z;i;apl;eltype;class;nans;j
      ⍝ Decode a variable (recursive for matrix types)
-
-      complex←logical←global←0      
+     
+      complex←logical←global←0
       (class shape)←larg
       :If mxSPARSE_CLASS=class
           nzmax←≢⊃value       ⍝ number of non-zero elements
           complex←1
       :Else
-          (shape nzmax)← (⍴value) 0
+          (shape nzmax)←(⍴value)0
       :EndIf
      
       r←4 int miMATRIX 65535  ⍝ Everything is a matrix, we will fill in length at the end
@@ -145,48 +161,48 @@
       :EndIf
      
       :Select class
-
-      :Case mxCELL_CLASS                 
+     
+      :Case mxCELL_CLASS
           :If 80=⎕DR∊value
-             r,←∊{mxCHAR_CLASS EncodeVariable '' ⍵}¨value
+              r,←∊{mxCHAR_CLASS EncodeVariable''⍵}¨value
           :Else
-             ∘∘∘ ⍝ Only support char data in Cell Arrays
-          :EndIf     
-
-      :Case mxSPARSE_CLASS     
-          r,←4 int miINT32 (4×≢z←1⊃value)  ⍝ ir
-          r,←80 ⎕DR {⍵,(2|≢⍵)⍴0} ⊃0 dyINT32 ⎕DR z           
-          r,←4 int miINT32 (4×≢z←2⊃value)  ⍝ jc
-          r,←80 ⎕DR {⍵,(2|≢⍵)⍴0} ⊃0 dyINT32 ⎕DR z           
-          r,←4 int miDOUBLE (8×≢z←3⊃value) ⍝ pr
-          r,←80 ⎕DR ⊃0 dyDOUBLE ⎕DR z           
-
+              ∘∘∘ ⍝ Only support char data in Cell Arrays
+          :EndIf
+     
+      :Case mxSPARSE_CLASS
+          r,←4 int miINT32(4×≢z←1⊃value)  ⍝ ir
+          r,←80 ⎕DR{⍵,(2|≢⍵)⍴0}⊃0 dyINT32 ⎕DR z
+          r,←4 int miINT32(4×≢z←2⊃value)  ⍝ jc
+          r,←80 ⎕DR{⍵,(2|≢⍵)⍴0}⊃0 dyINT32 ⎕DR z
+          r,←4 int miDOUBLE(8×≢z←3⊃value) ⍝ pr
+          r,←80 ⎕DR⊃0 dyDOUBLE ⎕DR z
+     
       :CaseList z←mxCHAR_CLASS mxDOUBLE_CLASS ⍝ non-nested formats
-          apl←(163 645)[i←z⍳class] 
-           
+          apl←(163 645)[i←z⍳class]
+     
           nans←⍬
-          :If class=mxDOUBLE_CLASS    
-              value←,value
+          value←,⍉value
+          :If class=mxDOUBLE_CLASS
               value[nans←(value∊⊂NaNValue)/⍳⍴value]←0
           :AndIf (0=⍴nans)∧5≠j←dyINT32 dyINT16 dyINT8 dyBOOL⍳apl←⎕DR value
               eltype←j⊃miINT32 miINT16 miINT8 miINT8 ⍝ We can use a smaller type
           :Else
-              eltype←(miUINT16 miDOUBLE)[i] 
-          :EndIf                  
-
-          data←80 ⎕DR⊃0 apl ⎕DR,⍉value           
+              eltype←(miUINT16 miDOUBLE)[i]
+          :EndIf
+     
+          data←80 ⎕DR⊃0 apl ⎕DR value
           :If 0≠≢nans
               data[(8×nans-1)∘.+⍳8]←((⍴nans),8)⍴⌽NaN
           :EndIf
-          r,←(2*1+4<≢data) int eltype(≢data)
+          r,←(2*1+4<≢data)int eltype(≢data)
           r,←data
-
+     
       :Else
           ∘∘∘ ⍝ Unsupported type
       :EndSelect
      
       r,←(8|8-8|≢r)⍴⎕UCS 0 ⍝ Word align
-      r[4+⍳4]←4 int (≢r)-8×1+2×class=miMATRIX ⍝ Adjust size (2 extra words for miMATRIX)  
+      r[4+⍳4]←4 int(≢r)-8×1+2×class=miMATRIX ⍝ Adjust size (2 extra words for miMATRIX)
     ∇
 
     ∇ var←type DecodeVariable data;flags;class;logical;global;complex;z;rank;size;offset;shape;len;name;arrays;bytes;dr;i;t;nzmax;u;width;eltype
@@ -373,7 +389,7 @@
     ∇
 
     :Section Constants
-    
+
     ⎕ML←⎕IO←1  ⍝ Do not change these
 
     mxCELL_CLASS←1
