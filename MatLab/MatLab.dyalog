@@ -1,17 +1,16 @@
 ﻿:Namespace MatLab
     ⍝ Tools to read and write MatLab files from Dyalog APL
 
-    Compress←1   ⍝ Set to 0 to NOT gzip each array on export
-    NaNValue←⍬   ⍝ Represent NaNs as ⍬
-    
-    
-    ∇r←ToSparse array;t;m;n  
+    Compress←1      ⍝ Set to 0 to NOT gzip each array on export
+    NaNValue←⎕NULL  ⍝ Represent NaNs as ⎕NULLS
+
+    ∇ r←ToSparse array;t;m;n
     ⍝ Convert dense APL array to MatLab Sparse array
-    n←+/m←0≠t←⍉array
-    r←((,m)/,(⍴m)⍴¯1+⍳≢array)(0,+\n)((,m)/,t) 
+      n←+/m←0≠t←⍉array
+      r←((,m)/,(⍴m)⍴¯1+⍳≢array)(0,+\n)((,m)/,t)
     ∇
-    
-    ∇r←FromSparse (shape data);ci;values;jc;ri
+
+    ∇ r←FromSparse(shape data);ci;values;jc;ri
      ⍝ Convert MatLab Sparse array to a Dense APL Array
       (ri jc values)←data
       ci←(¯2-/jc)/⍳2⊃shape
@@ -19,61 +18,101 @@
       r[(1+ri),¨ci]←values ⍝ could be optimised
     ∇
 
-    ∇ r←Test;data;f2;f1;new;old;hdrs;p;m;diff;d2;folder;file;d1;b2;b1;common;Compress;i;v1;name;shape;type;identical;sparse;s;t
+    ∇ r←Test;data;f2;f1;new;old;hdrs;p;m;diff;d2;folder;file;d1;b2;b1;common;Compress;i;v1;name;shape;type;identical;sparse;s;t;v2
       ⎕NUNTIE ⎕NNUMS
       folder←'C:\Devt\MatLabAPL\'
-      
+     
       :For file :In 'sparse' 'testdataset_nonulls' 'testdataset_uncompressed' 'testdataset'
-           
-           Compress←(⊂file)∊'sparse' 'testdataset'
-           ⎕←'Testing "',file,'.mat"',Compress/ '(using zlib compression)'
-           d1←Read f1←folder,file,'.mat'
-           b1←ReadFile f1
-           
-           {} d1 Write f2←folder,file,'-copy.mat'
-           d2←Read f2   
-           b2←ReadFile f2
-           
-           :If (124↓b1)≡124↓b2
-               ⎕←'   File is identical except for header.'
-           :ElseIf (≢b1)≠≢b2
-               ⎕←'   Copy size = ',(⍕≢b2),', original file size was ',⍕≢b1
-           :ElseIf
-               ⎕←'   Files are same size but ',(⍕(124↓b1)+.≠124↓b2),' bytes are different following the header.'
-           :EndIf
-           
-           :If d1.Variables≢d2.Variables
-               ⎕←'   Variable lists not identical:'
-               ⎕←'Original' 'Copy',⍉⍪(d1 d2).Variables
-           :EndIf
-           
-           common←↑(↓d1.Variables)∩↓d2.Variables
-           identical←⍬
-           :For i :In ⍳≢common
-                (name shape type)←common[i;]
-                :If (v1←d1.Data⍎name)≡v2←d2.Data⍎name
-                    identical,←⊂name
-                :Else
-                    ∘∘∘
-                :EndIf
-                :If type≡'mxSPARSE_CLASS'             
-                    t←FromSparse shape v1  
-                    :If v1≢ToSparse t
-                        ∘∘∘ ⍝ to/from Sparse worked 
-                    :Else
-                        ⎕←'To/From Sparse OK: ',name
-                    :EndIf
-                :EndIf           
-           :EndFor                  
-           '   Identical after read/write/read: ',,⍕identical
+     
+          Compress←(⊂file)∊'sparse' 'testdataset'
+          ⎕←'Testing "',file,'.mat"',Compress/'(using zlib compression)'
+          d1←Read f1←folder,file,'.mat'
+          b1←ReadFile f1
+     
+          {}d1 Write f2←folder,file,'-copy.mat'
+          d2←Read f2
+          b2←ReadFile f2
+     
+          :If (124↓b1)≡124↓b2
+              ⎕←'   File is identical except for header.'
+          :ElseIf (≢b1)≠≢b2
+              ⎕←'   Copy size = ',(⍕≢b2),', original file size was ',⍕≢b1
+          :ElseIf
+              ⎕←'   Files are same size but ',(⍕(124↓b1)+.≠124↓b2),' bytes are different following the header.'
+          :EndIf
+     
+          :If d1.Variables≢d2.Variables
+              ⎕←'   Variable lists not identical:'
+              ⎕←'Original' 'Copy',⍉⍪(d1 d2).Variables
+          :EndIf
+     
+          common←↑(↓d1.Variables)∩↓d2.Variables
+          identical←⍬
+          :For i :In ⍳≢common
+              (name shape type)←common[i;]
+              :If (v1←d1.Data⍎name)≡v2←d2.Data⍎name
+                  identical,←⊂name
+              :Else
+                  ∘∘∘
+              :EndIf
+              :If type≡'mxSPARSE_CLASS'
+                  t←FromSparse shape v1
+                  :If v1≢ToSparse t
+                      ∘∘∘ ⍝ to/from Sparse worked
+                  :Else
+                      ⎕←'To/From Sparse OK: ',name
+                  :EndIf
+              :EndIf
+          :EndFor
+          '   Identical after read/write/read: ',,⍕identical
       :EndFor
-
+     
     ∇
 
-    ∇ r←data Write name;header;now;vars;ref;v;sparse;tn;i;value;z;dr;shape;type;int
+    ∇ r←data Write name;header;now;vars;ref;v;sparse;tn;i;value;z;dr;shape;type;int;shapes
       ⍝ Read a Matlab File in Little-Endian Format
      
       int←{⎕UCS,⌽⍉(⍺⍴256)⊤⍵} ⍝ litte-endian ⍺-byte integer
+          
+      :If 9=(ref←data).⎕NC'Data' ⋄ ref←data.Data ⋄ :EndIf
+     
+      :If 2=data.⎕NC'Variables' ⋄ vars←data.Variables
+      :Else
+          vars←⍪(ref.⎕NL-2)(,⍤0 1)⍬ 'mxDOUBLE_CLASS'
+          :If 2=data.⎕NC'Sparse'
+          :AndIf ∧/data.Sparse∊vars[;1]
+              vars[{⍵/⍳⍴⍵}vars[;1]∊data.Sparse;3]←⊂'mxSPARSE_CLASS'
+              vars←(~vars[;1]∊⊂'Sparse')⌿vars
+          :EndIf
+     
+          :For i :In ⍳≢vars
+              dr←⎕DR value←ref⍎⊃vars[i;1]
+              :Select ⎕DR value
+              :Case dyNESTED                        
+                  :If 1=≡value ⍝ simple array with nulls?
+                  :AndIf (10|⎕DR (,value)~⎕NULL)∊1 3 5 ⍝ numeric
+                      vars[i;2 3]←(⍴value) 'mxDOUBLE_CLASS'
+                  :Else ⍝ really nested                    
+                  :If 'mxSPARSE_CLASS'≡⊃vars[i;3]
+                      :If 3≠⍴value
+                          ∘∘∘ ⍝ Sparse array which is not a 3-element vector
+                      :EndIf
+                  
+                  :Else ⍝ Not sparse
+                      :If ∧/,80=⎕DR¨value
+                      :AndIf ∧/1=≢¨shapes←⍴¨value   ⍝ All vectors
+                          value←(1,¨shapes)⍴¨value ⍝ Make 1-row matrices to keep MatLab happy
+                      :EndIf
+                      vars[i;3]←⊂'mxCELL_CLASS'
+                  :EndIf               
+                  :EndIf
+              :CaseList z←dyDOUBLE dyINT32 dyINT16 dyINT8
+                  vars[i;3]←(4⍴⊂'mxDOUBLE_CLASS')[z⍳dr] ⍝ Do'em all as doubles for now
+              :Else
+                  ∘∘∘ ⍝ as yet unsupported type
+              :EndSelect
+          :EndFor
+      :EndIf
      
       1 ⎕NDELETE name
       tn←name ⎕NCREATE 0
@@ -85,41 +124,7 @@
       header,←,'ZI2,< >,ZI2,<:>,ZI2,<:>,ZI2,< >,ZI4'⎕FMT 1 5⍴now[3 4 5 6 1]
       header←(116↑header),(⎕UCS(8⍴0),0 1),'IM' ⍝ Version 0x0100 and Little Endian IM
       header ⎕NAPPEND tn 80
-     
-      :If 9=(ref←data).⎕NC'Data' ⋄ ref←data.Data ⋄ :EndIf
-          
-      :If 2=data.⎕NC'Variables' ⋄ vars←data.Variables
-      :Else
-          vars←⍪((ref.⎕NL-2),⍤1)⍬ mxDOUBLE_CLASS
-          :If 2=data.⎕NC'Sparse' ⋄
-          :AndIf ∧/data.Sparse∊vars[;1]
-              vars[{⍵/⍳⍴⍵}vars[;3]∊data.Sparse;3]←'mxSPARSE_CLASS'
-              vars←(~vars[;1]∊⊂'Sparse')⌿vars
-          :EndIf
-     
-          :For i :In ⍳≢vars
-              dr←⎕DR value←ref⍎i⊃vars
-              :Select ⎕DR value
-              :Case dyNESTED
-                  :If 'mxSPARSE_CLASS'=⊃vars[i;3]
-                      :If 3≠⍴value
-                          ∘∘∘ ⍝ Sparse array which is not a 3-element vector
-                      :EndIf
-                  :Else ⍝ Not sparse
-                      :If ∧/80=⎕DR¨value
-                      :AndIf ∧/1=≢¨shapes←⍴¨value   ⍝ All vectors
-                          value←(1,¨shapes)⍴¨values ⍝ Make 1-row matrices to keep MatLab happy
-                      :EndIf
-                      vars[i;3]←⊂'mxCELL_CLASS'
-                  :EndIf
-              :CaseList z←,dyDOUBLE
-                  vars[i;3]←(⊂'mxDOUBLE_CLASS')[z⍳dr]
-              :Else
-                  ∘∘∘ ⍝ as yet unsupported type
-              :EndSelect   
-          :EndFor
-      :EndIf
-     
+
       :For i :In ⍳≢vars
           (name shape type)←vars[i;]
           :If 80=⎕DR type ⋄ :AndIf 2=⎕NC type ⋄ type←⍎type ⋄ :EndIf
@@ -133,11 +138,11 @@
       :EndFor
      
       r←⎕NSIZE tn
-      ⎕FUNTIE tn
+      ⎕NUNTIE tn
     ∇
 
     ∇ r←larg EncodeVariable(name value);flags;global;logical;complex;nzmax;shape;length;data;z;i;apl;eltype;class;nans;j
-     ⍝ Decode a variable (recursive for matrix types)
+     ⍝ Encode a variable in MatLab format
      
       complex←logical←global←0
       (class shape)←larg
@@ -391,7 +396,8 @@
     :Section Constants
 
     ⎕ML←⎕IO←1  ⍝ Do not change these
-
+    
+    ⍝ MatLab Array Classes
     mxCELL_CLASS←1
     mxSTRUCT_CLASS←2
     mxOBJECT_CLASS←3
@@ -408,6 +414,7 @@
     mxINT64_CLASS←14
     mxUINT64_CLASS←15
 
+    ⍝ Matab Element Types
     miINT8←1
     miUINT8←2
     miINT16←3
@@ -423,7 +430,8 @@
     miUTF8←16
     miUTF16←17
     miUTF32←18
-
+    
+    ⍝ Dyalog Element Types
     dyBOOL←11
     dyCHAR←80
     dyINT8←83
@@ -434,6 +442,7 @@
     dyDECF←1287
     dyCOMPLEX←1289
 
+    ⍝ Collections
     miUINTs←miUINT8 miUINT16 miUINT32 miUINT64
     miINTs←miINT8 miINT16 miINT32 ⍝ INT64 not yet supported
     dyINTs←dyINT8 dyINT16 dyINT32
@@ -441,7 +450,7 @@
     Months←'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'
     Days←'Mon' 'Tue' 'Wed' 'Thu' 'Fri' 'Sat' 'Sun'
 
-    NaN←⎕UCS 8↑255 248
+    NaN←⎕UCS 8↑255 248 ⍝ IEEE NaN 
 
     :EndSection
 
