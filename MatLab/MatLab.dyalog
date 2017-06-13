@@ -1,21 +1,32 @@
 ﻿:Namespace MatLab
-    ⍝ Tools to read and write MatLab files from Dyalog APL
+⍝ Tools to read and write MatLab files from Dyalog APL
 
     Compress←1      ⍝ Set to 0 to NOT gzip each array on export
     NaNValue←⎕NULL  ⍝ Represent NaNs as ⎕NULLS
 
-    ∇ r←ToSparse array;t;m;n
+    ∇ r←MatToSparse array;t;m;n
     ⍝ Convert dense APL array to MatLab Sparse array
       n←+/m←0≠t←⍉array
       r←((,m)/,(⍴m)⍴¯1+⍳≢array)(0,+\n)((,m)/,t)
     ∇
 
-    ∇ r←FromSparse(shape data);ci;values;jc;ri
+    ∇ r←SparseToMat(shape data);ci;values;jc;ri
      ⍝ Convert MatLab Sparse array to a Dense APL Array
       (ri jc values)←data
       ci←(¯2-/jc)/⍳2⊃shape
       r←shape⍴0
       r[(1+ri),¨ci]←values ⍝ could be optimised
+    ∇
+
+    ∇ r←RCDtoSparse(rows cols data);c;p    
+     ⍝ Rows Cols Data to MatLab Sparse Array triplet (rows col-offsets data)
+      (rows cols data)←(⊂⍋cols)∘⌷¨rows cols data ⍝ Ascending by column 
+      rows←rows-1                 ⍝ Index origin zero in MatLab files
+      c←(⌈/cols)⍴0                ⍝ Highest column number found
+      p←((2≠/cols),1)/⍳⍴cols      ⍝ Indices of ends of each column found
+      c[∪cols]←¯2-/0,p            ⍝ Number of elements in each column
+      c←+\0,c                     ⍝ Matlab wants a pointer to the start of each column
+      r←rows c data
     ∇
 
     ∇ r←Test;data;f2;f1;new;old;hdrs;p;m;diff;d2;folder;file;d1;b2;b1;common;Compress;i;v1;name;shape;type;identical;sparse;s;t;v2
@@ -73,12 +84,12 @@
       ⍝ Read a Matlab File in Little-Endian Format
      
       int←{⎕UCS,⌽⍉(⍺⍴256)⊤⍵} ⍝ litte-endian ⍺-byte integer
-          
+     
       :If 9=(ref←data).⎕NC'Data' ⋄ ref←data.Data ⋄ :EndIf
      
       :If 2=data.⎕NC'Variables' ⋄ vars←data.Variables
       :Else
-          vars←⍪(ref.⎕NL-2)(,⍤0 1)⍬ 'mxDOUBLE_CLASS'
+          vars←⍪(ref.⎕NL-2)(,⍤0 1)⍬'mxDOUBLE_CLASS'
           :If 2=data.⎕NC'Sparse'
           :AndIf ∧/data.Sparse∊vars[;1]
               vars[{⍵/⍳⍴⍵}vars[;1]∊data.Sparse;3]←⊂'mxSPARSE_CLASS'
@@ -88,23 +99,23 @@
           :For i :In ⍳≢vars
               dr←⎕DR value←ref⍎⊃vars[i;1]
               :Select ⎕DR value
-              :Case dyNESTED                        
+              :Case dyNESTED
                   :If 1=≡value ⍝ simple array with nulls?
-                  :AndIf (10|⎕DR (,value)~⎕NULL)∊1 3 5 ⍝ numeric
-                      vars[i;2 3]←(⍴value) 'mxDOUBLE_CLASS'
-                  :Else ⍝ really nested                    
-                  :If 'mxSPARSE_CLASS'≡⊃vars[i;3]
-                      :If 3≠⍴value
-                          ∘∘∘ ⍝ Sparse array which is not a 3-element vector
+                  :AndIf (10|⎕DR(,value)~⎕NULL)∊1 3 5 ⍝ numeric
+                      vars[i;2 3]←(⍴value)'mxDOUBLE_CLASS'
+                  :Else ⍝ really nested
+                      :If 'mxSPARSE_CLASS'≡⊃vars[i;3]
+                          :If 3≠⍴value
+                              ∘∘∘ ⍝ Sparse array which is not a 3-element vector
+                          :EndIf
+     
+                      :Else ⍝ Not sparse
+                          :If ∧/,80=⎕DR¨value
+                          :AndIf ∧/1=≢¨shapes←⍴¨value   ⍝ All vectors
+                              value←(1,¨shapes)⍴¨value  ⍝ Make 1-row matrices to keep MatLab happy
+                          :EndIf
+                          vars[i;3]←⊂'mxCELL_CLASS'
                       :EndIf
-                  
-                  :Else ⍝ Not sparse
-                      :If ∧/,80=⎕DR¨value
-                      :AndIf ∧/1=≢¨shapes←⍴¨value   ⍝ All vectors
-                          value←(1,¨shapes)⍴¨value ⍝ Make 1-row matrices to keep MatLab happy
-                      :EndIf
-                      vars[i;3]←⊂'mxCELL_CLASS'
-                  :EndIf               
                   :EndIf
               :CaseList z←dyDOUBLE dyINT32 dyINT16 dyINT8
                   vars[i;3]←(4⍴⊂'mxDOUBLE_CLASS')[z⍳dr] ⍝ Do'em all as doubles for now
@@ -124,7 +135,7 @@
       header,←,'ZI2,< >,ZI2,<:>,ZI2,<:>,ZI2,< >,ZI4'⎕FMT 1 5⍴now[3 4 5 6 1]
       header←(116↑header),(⎕UCS(8⍴0),0 1),'IM' ⍝ Version 0x0100 and Little Endian IM
       header ⎕NAPPEND tn 80
-
+     
       :For i :In ⍳≢vars
           (name shape type)←vars[i;]
           :If 80=⎕DR type ⋄ :AndIf 2=⎕NC type ⋄ type←⍎type ⋄ :EndIf
@@ -146,7 +157,7 @@
      
       complex←logical←global←0
       (class shape)←larg
-      :If mxSPARSE_CLASS=class
+      :If mxSPARSE_CLASS≡class
           nzmax←≢⊃value       ⍝ number of non-zero elements
           complex←1
       :Else
@@ -228,7 +239,7 @@
           assert z=miINT32 ⋄ size←4
           rank←rank÷size
           shape←int(rank size)⍴data[offset←24+⍳size×rank]
-          offset←⊃⌽offset
+          offset←8×⌈(⊃⌽offset)÷8
      
           :If miINT8=int data[offset+⍳4]     ⍝ 4-byte length type indicator?
               len←int data[offset+4+⍳4]
@@ -396,7 +407,7 @@
     :Section Constants
 
     ⎕ML←⎕IO←1  ⍝ Do not change these
-    
+
     ⍝ MatLab Array Classes
     mxCELL_CLASS←1
     mxSTRUCT_CLASS←2
@@ -430,7 +441,7 @@
     miUTF8←16
     miUTF16←17
     miUTF32←18
-    
+
     ⍝ Dyalog Element Types
     dyBOOL←11
     dyCHAR←80
@@ -450,7 +461,7 @@
     Months←'Jan' 'Feb' 'Mar' 'Apr' 'May' 'Jun' 'Jul' 'Aug' 'Sep' 'Oct' 'Nov' 'Dec'
     Days←'Mon' 'Tue' 'Wed' 'Thu' 'Fri' 'Sat' 'Sun'
 
-    NaN←⎕UCS 8↑255 248 ⍝ IEEE NaN 
+    NaN←⎕UCS 8↑255 248 ⍝ IEEE NaN
 
     :EndSection
 
