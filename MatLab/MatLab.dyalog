@@ -187,11 +187,11 @@
      
       :Case mxSPARSE_CLASS
           r,←4 int miINT32(4×≢z←1⊃value)  ⍝ ir
-          r,←80 ⎕DR{⍵,(2|≢⍵)⍴0}⊃0 dyINT32 ⎕DR z
+          r,←80 ⎕DR{⍵,(2|≢⍵)⍴0}⊃(⎕DR z) dyINT32 ⎕DR z
           r,←4 int miINT32(4×≢z←2⊃value)  ⍝ jc
-          r,←80 ⎕DR{⍵,(2|≢⍵)⍴0}⊃0 dyINT32 ⎕DR z
+          r,←80 ⎕DR{⍵,(2|≢⍵)⍴0}⊃(⎕DR z) dyINT32 ⎕DR z
           r,←4 int miDOUBLE(8×≢z←3⊃value) ⍝ pr
-          r,←80 ⎕DR⊃0 dyDOUBLE ⎕DR z
+          r,←80 ⎕DR⊃(⎕DR z) dyDOUBLE ⎕DR z
      
       :CaseList z←mxCHAR_CLASS mxDOUBLE_CLASS ⍝ non-nested formats
           apl←(163 645)[i←z⍳class]
@@ -206,7 +206,7 @@
               eltype←(miUINT16 miDOUBLE)[i]
           :EndIf
      
-          data←80 ⎕DR⊃0 apl ⎕DR value
+          data←80 ⎕DR⊃(⎕DR value) apl ⎕DR value
           :If 0≠≢nans
               data[(8×nans-1)∘.+⍳8]←((⍴nans),8)⍴⌽NaN
           :EndIf
