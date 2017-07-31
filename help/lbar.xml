@@ -1,0 +1,868 @@
+<lbar><symbol><char>←</char><desc>Dyadic syntax:   Assignment 
+ 
+      X←3 5⍴'ABCDEFG' 
+      X 
+ABCDE 
+FGABC 
+DEFGA 
+ 
+      X,←3 4 5 
+      X 
+ABCDE 3 
+FGABC 4 
+DEFGA 5 
+</desc><text>Left Arrow (←)</text></symbol>
+<symbol><char>+</char><desc>Monadic function:  Conjugate 
+ 
+      + 3.2 ¯12.666 1j1 2j¯2 
+3.2 ¯12.666 1J¯1 2J2 
+ 
+Dyadic function:   Plus 
+ 
+      1 2 3 4 + 5 6 7 8 
+6 8 10 12 
+</desc><text>Plus (+)</text></symbol>
+<symbol><char>-</char><desc>Monadic function:  Negate 
+ 
+      - 3 2 5.5 ¯7 0 
+¯3 ¯2 ¯5.5 7 0 
+ 
+Dyadic function:   Minus 
+ 
+      3 7 9 - 5 
+¯2 2 4 
+</desc><text>Minus (-)</text></symbol>
+<symbol><char>×</char><desc>Monadic function:  Direction 
+ 
+      × 3 2 ¯2 0 8 
+1 1 ¯1 0 1 
+ 
+Dyadic function:   Times 
+ 
+      2 ¯8 2 5 4 × 3 2 ¯2 0 8 
+6 ¯16 ¯4 0 32 
+</desc><text>Times (×)</text></symbol>
+<symbol><char>÷</char><desc>Monadic function:  Reciprocal 
+ 
+      ÷ 1 2 3 
+1 0.5 0.33333333 
+ 
+Dyadic function:   Divide 
+ 
+      1 2 3 4 ÷ 5 6 7 8 
+0.2 0.33333333 0.42857143 0.5 
+</desc><text>Divide (÷)</text></symbol>
+<symbol><char>*</char><desc>Monadic function:  Exponential 
+ 
+      * 2 2⍴1 2 3 4 
+ 2.7182818  7.3890561 
+20.085537  54.59815 
+ 
+Dyadic function:   Power 
+ 
+     (2 2⍴1 2 3 4) * 2 2⍴1 2 3 4 
+ 1   4 
+27 256 
+</desc><text>Star (*)</text></symbol>
+<symbol><char>⍟</char><desc>Monadic function:  Natural Logarithm 
+ 
+      ⍟ 1 2 3 2.718281828 
+0 0.69314718 1.0986123 1 
+ 
+Dyadic function:   Logarithm 
+ 
+      10 ⍟ 1 10 100 1000 
+0 1 2 3 
+</desc><text>Log (⍟)</text></symbol>
+<symbol><char>⌹</char><desc>Monadic function:  Matrix Inverse 
+ 
+      ⌹ 2 2⍴1 2 3 4 
+¯2    1 
+ 1.5 ¯0.5 
+ 
+Dyadic function:   Matrix Divide 
+ 
+      5 6 ⌹ 2 2⍴1 2 3 4 
+¯4 4.5 
+</desc><text>Domino (⌹)</text></symbol>
+<symbol><char>○</char><desc>Monadic function:  Pi Times 
+ 
+      ○ 0 1 2 
+0 3.1415927 6.2831853 
+ 
+Dyadic function:   Circular Function 
+ 
+      1 ○ 0 1.5707963 3.1415927 
+0 1 ¯4.6410207E¯8 
+ 
+N.B.: Trigonometric function identified by value of left argument. 
+</desc><text>Circle (○)</text></symbol>
+<symbol><char>!</char><desc>Monadic function:  Factorial 
+ 
+      ! 3 10 ¯0.11 
+6 3628800 1.0768307 
+ 
+Dyadic function:   Binomial 
+ 
+      2 1 3 ! 3 10 ¯0.11 
+3 10 ¯0.0429385 
+</desc><text>Exclamation Mark (!)</text></symbol>
+<symbol><char>?</char><desc>Monadic function:  Roll 
+ 
+      ? 1000 1000 1000 9000 
+756 459 533 1971 
+ 
+Dyadic function:   Deal 
+ 
+      7 ? 1000 
+67 418 687 589 931 847 527 
+</desc><text>Question Mark (?)</text></symbol>
+<symbol><char>|</char><desc>Monadic function:  Magnitude 
+ 
+      | 2.3 4 ¯2 0 
+2.3 4 2 0 
+ 
+Dyadic function:   Residue 
+ 
+      2 | 2.3 4 ¯2 0 ¯2.3 
+0.3 0 0 0 1.7 
+</desc><text>Stile (|)</text></symbol>
+<symbol><char>⌈</char><desc>Monadic function:  Ceiling 
+ 
+      ⌈ 3.4 2 8.1 ¯3.44 0 
+4 2 9 ¯3 0 
+ 
+Dyadic function:   Maximum 
+ 
+      3 1.1 ¯2 ⌈ 3.4 8.1 ¯3.44 
+3.4 8.1 ¯2 
+</desc><text>Upstile (⌈)</text></symbol>
+<symbol><char>⌊</char><desc>Monadic function:  Floor 
+ 
+      ⌊ 3.4 ¯2.1 8.1 3 0 
+3 ¯3 8 3 0 
+ 
+Dyadic function:   Minimum 
+ 
+      3  1.1 ¯2 ⌊ 3.4  8.1 ¯3.44 
+3 1.1 ¯3.44 
+</desc><text>Downstile (⌊)</text></symbol>
+<symbol><char>⊥</char><desc>Dyadic function:   Decode 
+ 
+      2 ⊥ 2 3⍴0 1 1 1 0 1 
+1 2 3 
+ 
+      2 ⊥ 1 2 3 4 
+26 
+</desc><text>Up Tack (⊥)</text></symbol>
+<symbol><char>⊤</char><desc>Dyadic function:   Encode 
+ 
+      2 2 2 2 2 2 ⊤ 8 16 32 
+0 0 1 
+0 1 0 
+1 0 0 
+0 0 0 
+0 0 0 
+0 0 0 
+ 
+      2 ⊤ 1 2 3 4 
+1 0 1 0 
+</desc><text>Down Tack (⊤)</text></symbol>
+<symbol><char>⊣</char><desc>Monadic function:  Same 
+ 
+      ⊣  1 2 3 
+1 2 3 
+ 
+Dyadic function:   Left 
+ 
+      'Left' ⊣ 'Right' 
+Left 
+</desc><text>Left Tack (⊣)</text></symbol>
+<symbol><char>⊢</char><desc>Monadic function:  Same 
+ 
+      ⊢  1 2 3 
+1 2 3 
+ 
+Dyadic function:   Right 
+ 
+      'Left' ⊢ 'Right' 
+Right 
+</desc><text>Right Tack (⊢)</text></symbol>
+<symbol><char>=</char><desc>Dyadic function:   Equal To 
+ 
+      2 = 2 2 ¯2 0 8 
+1 1 0 0 0 
+</desc><text>Equal (=)</text></symbol>
+<symbol><char>≠</char><desc>Dyadic function:   Not Equal To (XOR) 
+ 
+      3 ≠ 2 2 2⍴1 2 3 
+1 1 
+0 1 
+ 
+1 0 
+1 1 
+ 
+      0 1 0 1 ≠ 0 0 1 1 
+0 1 1 0 
+</desc><text>Not Equal (≠)</text></symbol>
+<symbol><char>≤</char><desc>Dyadic function:   Less Than or Equal To 
+ 
+      2 ¯8 2 5 4 ≤ 2 2 ¯2 0 8 
+1 1 0 0 1 
+</desc><text>Less Than Or Equal To (≤)</text></symbol>
+<symbol><char>&lt;</char><desc>Dyadic function:   Less Than 
+ 
+      2 ¯8 2 5 4 &lt; 2 2 ¯2 0 8 
+0 1 0 0 1 
+</desc><text>Less Than (&lt;)</text></symbol>
+<symbol><char>&gt;</char><desc>Dyadic function:   Greater Than 
+ 
+      2 ¯8 2 5 4 &gt; 2 2 ¯2 0 8 
+0 0 1 1 0 
+</desc><text>Greater Than (&gt;)</text></symbol>
+<symbol><char>≥</char><desc>Dyadic function:   Greater Than or Equal To 
+ 
+       2 ¯8 2 5 4 ≥ 2 2 ¯2 0 8 
+1 0 1 1 0 
+</desc><text>Greater Than Or Equal To (≥)</text></symbol>
+<symbol><char>≡</char><desc>Monadic function:  Depth 
+ 
+      ≡ 1 (1 2)('ab' 'def') 
+¯3 
+ 
+N.B.: Result is always positive if ⎕ML≥2. 
+ 
+Dyadic function:   Match 
+ 
+      'b' 'e' 'x'≡  'bex' 
+1 
+</desc><text>Equal Underbar (≡)</text></symbol>
+<symbol><char>≢</char><desc>Monadic function:  Tally 
+ 
+      ≢ 5 4 3⍴0 
+5 
+ 
+Dyadic function:   Not Match 
+ 
+      'bex' ≢ 'b','e','x' 
+0 
+</desc><text>Equal Underbar Slash (≢)</text></symbol>
+<symbol><char>∨</char><desc>Dyadic function:   Greatest Common Divisor/OR 
+ 
+      0 1 0 1 ∨ 0 0 1 1 
+0 1 1 1 
+ 
+      15 1 2 7 ∨ 35 1 4 0 
+5 1 2 7 
+</desc><text>Logical OR (∨)</text></symbol>
+<symbol><char>∧</char><desc>Dyadic function:   Lowest Common Multiple/AND 
+ 
+      0 1 0 1 ∧ 0 0 1 1 
+0 0 0 1 
+ 
+      15 1 2 7 ∧ 35 1 4 0 
+105 1 4 0 
+</desc><text>Logical AND (∧)</text></symbol>
+<symbol><char>⍲</char><desc>Dyadic function:   NAND 
+ 
+      0 1 0 1 ⍲ 0 0 1 1 
+1 1 1 0 
+</desc><text>Logical NAND (⍲)</text></symbol>
+<symbol><char>⍱</char><desc>Dyadic function:   NOR 
+ 
+      0 1 0 1 ⍱ 0 0 1 1 
+1 0 0 0 
+</desc><text>Logical NOR (⍱)</text></symbol>
+<symbol><char>↑</char><desc>Monadic function:  ⎕ML ≤ 1 Mix, ⎕ML ≥2 First) 
+ 
+      ⎕ML←1 ⋄ ↑ (6 4) 5 3 
+6 4 
+5 0 
+3 0 
+ 
+      ⎕ML←3 ⋄ ↑ (6 4) 5 3 
+6 4 
+ 
+Dyadic:   Take 
+ 
+      2 3↑7 
+7 0 0 
+0 0 0 
+ 
+      ¯5↑1 2 3 
+0 0 1 2 3 
+</desc><text>Up Arrow (↑)</text></symbol>
+<symbol><char>↓</char><desc>Monadic function:  Split 
+ 
+      ↓ 3 3⍴1 2 3 4 
+ 1 2 3  4 1 2  3 4 1 
+ 
+Dyadic function:   Drop 
+ 
+      1 1 ↓ 3 3⍴⍳18 
+5 6 
+8 9 
+      ¯1 1 ↓ 3 3⍴⍳18 
+2 3 
+5 6 
+</desc><text>Down Arrow (↓)</text></symbol>
+<symbol><char>⊂</char><desc>Monadic function:  Enclose 
+ 
+      ⊂ 1 (2 2) (2 2⍴3) 
+ 1  2 2  3 3 
+         3 3 
+ 
+Dyadic function:   ⎕ML ≤ 2 Partitioned Enclose, ⎕ML = 3 Partition 
+ 
+      ⎕ML←1 ⋄ 0 1 0 1 ⊂ 1 2 3 4 
+ 2 3  4 
+ 
+      ⎕ML←3 ⋄ 0 1 0 1 ⊂ 1 2 3 4 
+ 2  4 
+</desc><text>Left Shoe (⊂)</text></symbol>
+<symbol><char>⊃</char><desc>Monadic function:  ⎕ML ≤ 1 First, ⎕ML ≥2 Mix 
+ 
+      ⎕ML←1 ⋄ ⊃ (2 2)(3 3 3) 
+2 2 
+ 
+      ⎕ML←3 ⋄ ⊃ (2 2)(3 3 3) 
+2 2 0 
+3 3 3 
+ 
+Dyadic function:   Pick 
+ 
+      2 ⊃ (2 2)(2 3⍴3) 
+3 3 3 
+3 3 3 
+</desc><text>Right Shoe (⊃)</text></symbol>
+<symbol><char>⊆</char><desc>Monadic function:  Nest 
+ 
+      ⊆ 1 2 3 
+ 1 2 3 
+ 
+      ⊆ 1 (2 3) 
+1  2 3 
+ 
+Dyadic function:   Partition 
+ 
+      0 1 0 1 ⊆ 1 2 3 4 
+ 2  4 
+</desc><text>Left Shoe Underbar (⊆)</text></symbol>
+<symbol><char>⌷</char><desc>Monadic function:  Materialise 
+      ⌷ 1 2 3 4 
+1 2 3 4 
+ 
+ N.B.  imc.Item≡⌷imc if imc is an instance of a class for 
+ which Item is the default property 
+ 
+Dyadic function:   Index 
+ 
+      2 3⌷4 3⍴⍳12 
+6 
+ 
+      2⌷[1]⍳2 3 4 
+ 2 1 1  2 1 2  2 1 3  2 1 4 
+ 2 2 1  2 2 2  2 2 3  2 2 4 
+ 2 3 1  2 3 2  2 3 3  2 3 4 
+</desc><text>Squad (⌷)</text></symbol>
+<symbol><char>⍋</char><desc>Monadic function:  Grade Up 
+      ⍋ 3 1 4 6 2 
+2 5 1 3 4 
+ 
+Dyadic function:   Dyadic Grade Up 
+ 
+      'ABCDEFG'⍋'CDEDEDE' 
+1 2 4 6 3 5 7 
+</desc><text>Grade Up (⍋)</text></symbol>
+<symbol><char>⍒</char><desc>Monadic function:  Grade Down 
+ 
+      ⍒ 3 1 4 6 2 
+4 3 1 5 2 
+ 
+Dyadic function:   Dyadic Grade Down 
+ 
+      'ABCDEFG' ⍒ 'CDEDEDE' 
+3 5 7 2 4 6 1 
+</desc><text>Grade Down (⍒)</text></symbol>
+<symbol><char>⍳</char><desc>Monadic function:  Index Generator 
+ 
+      ⍳10 
+1 2 3 4 5 6 7 8 9 10 
+ 
+Dyadic function:   Index Of 
+ 
+      'ABCDABCDEF' ⍳ 'ACF' 
+1 3 10 
+</desc><text>Iota (⍳)</text></symbol>
+<symbol><char>⍸</char><desc>Monadic function:  Where 
+ 
+      ⍸ 1 0 0 1 1 
+1 4 5 
+ 
+Dyadic function:   Interval Index 
+ 
+      'AEIOU' ⍸ 'DYALOG' 
+1 5 1 3 4 2 
+</desc><text>Iota Underbar (⍸)</text></symbol>
+<symbol><char>∊</char><desc>Monadic function:  Enlist (Type if ⎕ML=0) 
+ 
+      ⎕ML←0 ⋄ ∊ 3 3⍴1 'abc' 
+   0         0 
+        0 
+   0         0 
+ 
+      ⎕ML←1 ⋄ ∊ 3 3⍴1 'abc' 
+ 
+1 abc 1 abc 1 abc 1 abc 1 
+ 
+Dyadic function:   Membership 
+ 
+      'abc' 1.1 ∊ 1.1 'ab' 'abcd' 
+0 1 
+</desc><text>Epsilon (∊)</text></symbol>
+<symbol><char>⍷</char><desc>Dyadic function:   Find 
+ 
+      'AN' ⍷ 'BANANA' 
+0 1 0 1 0 0 
+ 
+      0 0 ⍷ 4 4⍴0 1 0 
+0 0 1 0 
+0 1 0 0 
+1 0 0 0 
+0 0 1 0 
+</desc><text>Epsilon Underbar (⍷)</text></symbol>
+<symbol><char>∪</char><desc>Monadic function:  Unique 
+ 
+      ∪ 'ab' 'ba' 'ab' 1 1 2 
+ ab  ba  1 2 
+ 
+Dyadic function:   Union 
+ 
+      'ab' 'cde' 'fg' ∪ 'a' 'ab' 
+ ab  cde  fg a 
+ 
+</desc><text>Down Shoe (∪)</text></symbol>
+<symbol><char>∩</char><desc>Dyadic function:   Intersection 
+ 
+      22 'ab' 'fg' ∩ 'a' 'ab' 22 
+22  ab 
+ 
+</desc><text>Up Shoe (∩)</text></symbol>
+<symbol><char>~</char><desc>Monadic function:  NOT 
+ 
+      ~ 3 3⍴0 1 
+1 0 1 
+0 1 0 
+1 0 1 
+ 
+Dyadic function:   Without 
+ 
+      'ab' 'ce' 'fg' ~ 'ce' 'ab' 
+ fg 
+</desc><text>Tilde (~)</text></symbol>
+<symbol><char>/</char><desc>Dyadic function:   Replicate 
+ 
+      2 1 3 3 / 3.1 4 1 3.2 
+3.1 3.1 4 1 1 1 3.2 3.2 3.2 
+ 
+Monadic operator:  Reduce 
+ 
+      ∧/ 2 3 4⍴1 1 1 1 0 
+1 0 0 
+0 0 1 
+ 
+      ¯2 -/ 1 3 4 1 ⍝ N-Wise Reduce 
+2 1 ¯3 
+</desc><text>Slash (/)</text></symbol>
+<symbol><char>\</char><desc>Dyadic function:   Expand 
+ 
+      3 ¯2 4 \ 3 2⍴1.1 2.2 3.3 
+1.1 1.1 1.1 0 0 2.2 2.2 2.2 2.2 
+3.3 3.3 3.3 0 0 1.1 1.1 1.1 1.1 
+2.2 2.2 2.2 0 0 3.3 3.3 3.3 3.3 
+ 
+Monadic operator:  Scan 
+ 
+      +\ 1 2 3 4 5 6 7 8 9 10 
+1 3 6 10 15 21 28 36 45 55 
+</desc><text>Backslash (\)</text></symbol>
+<symbol><char>⌿</char><desc>Dyadic function:   Replicate First 
+ 
+      2 3 ⌿ 2 29⍴'NETHOTSONDS1' 
+NETHOTSONDS1NETHOTSONDS1NETHO 
+NETHOTSONDS1NETHOTSONDS1NETHO 
+TSONDS1NETHOTSONDS1NETHOTSOND 
+TSONDS1NETHOTSONDS1NETHOTSOND 
+TSONDS1NETHOTSONDS1NETHOTSOND 
+ 
+Monadic operator:  Reduce First 
+ 
+      +⌿ 10 3⍴5 
+50 50 50 
+</desc><text>Slash Bar (⌿)</text></symbol>
+<symbol><char>⍀</char><desc>Dyadic function:   Expand First 
+ 
+      0 1 1 2 ⍀ 3 6⍴'ABCDE' 
+ 
+ABCDEA 
+BCDEAB 
+CDEABC 
+CDEABC 
+ 
+Monadic operator:  Scan First 
+ 
+      =⍀ 5 6⍴0 1 0 
+0 1 0 0 1 0 
+1 1 1 1 1 1 
+0 1 0 0 1 0 
+1 1 1 1 1 1 
+0 1 0 0 1 0 
+ 
+      +⍀2 3 ⍴ ⍳6 
+1 2 3 
+5 7 9 
+</desc><text>Backslash Bar (⍀)</text></symbol>
+<symbol><char>,</char><desc>Monadic function:  Ravel 
+ 
+      , 2 2 2 2⍴3 
+3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 
+ 
+Dyadic function:   Catenate/Laminate 
+ 
+      (2 3⍴9) , 2 4⍴8 
+9 9 9 8 8 8 8 
+9 9 9 8 8 8 8 
+</desc><text>Comma (,)</text></symbol>
+<symbol><char>⍪</char><desc>Monadic function:  Table 
+      ⍪ 2 3 4 
+2 
+3 
+4 
+ 
+Dyadic function:   Catenate First/Laminate 
+ 
+      (3 2⍴9) ⍪ 4 2⍴8 
+9 9 
+9 9 
+9 9 
+8 8 
+8 8 
+8 8 
+8 8 
+</desc><text>Comma Bar (⍪)</text></symbol>
+<symbol><char>⍴</char><desc>Monadic function:  Shape 
+ 
+      ⍴ 15 3 7 8 75.53 
+5 
+ 
+Dyadic function:   Reshape 
+ 
+      2 3 4 ⍴ 15 3 7 8 75.53 
+15     3     7     8 
+75.53 15     3     7 
+ 8    75.53 15     3 
+ 
+ 7     8    75.53 15 
+ 3     7     8    75.53 
+15     3     7     8 
+</desc><text>Rho (⍴)</text></symbol>
+<symbol><char>⌽</char><desc>Monadic function:  Reverse 
+ 
+      ⌽ 8 2 5 6.6 ¯2 
+¯2 6.6 5 2 8 
+ 
+      ⌽ 3 2 ⍴⍳6 
+2 1 
+4 3 
+6 5 
+ 
+Dyadic function:   Rotate 
+ 
+      1 2 ¯1 ⌽ 3 3⍴⍳9 
+2 3 1 
+6 4 5 
+9 7 8 
+</desc><text>Circle Stile (⌽)</text></symbol>
+<symbol><char>⊖</char><desc>Monadic function:  Reverse First 
+ 
+      ⊖ 3 2⍴1 2 3 4 5 6 
+5 6 
+3 4 
+1 2 
+ 
+       ⊖ 3 2 ⍴⍳6 
+5 6 
+3 4 
+1 2 
+ 
+Dyadic function:   Rotate First 
+ 
+      1 2 ⊖ 3 2⍴1 2 3 4 5 6 
+3 6 
+5 2 
+1 4 
+</desc><text>Circle Bar (⊖)</text></symbol>
+<symbol><char>⍉</char><desc>Monadic function:  Transpose 
+ 
+      ⍉ 3 3⍴1 2 3 4 5 6 7 8 9 
+1 4 7 
+2 5 8 
+3 6 9 
+ 
+Dyadic function:   Dyadic Transpose 
+ 
+      2 1 3 ⍉ 2 3 4⍴⍳24 
+ 1  2  3  4 
+13 14 15 16 
+ 
+ 5  6  7  8 
+17 18 19 20 
+ 
+ 9 10 11 12 
+21 22 23 24 
+</desc><text>Transpose (⍉)</text></symbol>
+<symbol><char>¨</char><desc>Monadic operator:  Each 
+ 
+      ⊃¨ 1 2 3 'ABC' (9 8 7) 
+1 2 3 A 9 
+ 
+      3 ↑¨ 1 2 3 (2 3) 'A' 
+ 1 0 0  2 0 0  3 0 0  2 3 0  A 
+</desc><text>Diaeresis (¨)</text></symbol>
+<symbol><char>⍨</char><desc>Monadic operator:  Commute 
+ 
+      3.1243 - 4.1234 1 0   ⍝ ⍺ - ⍵ 
+¯0.9991 2.1243 3.1243 
+ 
+      3.1243 -⍨ 4.1234 1 0  ⍝ ⍵ - ⍺ 
+0.9991 ¯2.124 ¯3.124 
+ 
+      ×⍨5 
+25 
+</desc><text>Tilde Diaeresis (⍨)</text></symbol>
+<symbol><char>⍣</char><desc>Dyadic operator:   Power 
+ 
+      (↓ ⍣ 1) 2 2 2 2⍴⎕A    ⍝ split once 
+ AB  CD 
+ EF  GH 
+ 
+ IJ  KL 
+ MN  OP 
+ 
+      (↓ ⍣ 2) 2 2 2 2⍴⎕A    ⍝ split twice 
+  AB  CD    EF  GH 
+  IJ  KL    MN  OP 
+ 
+      (↓ ⍣ 3) 2 2 2 2⍴⎕A    ⍝ split thrice 
+   AB  CD    EF  GH      IJ  KL    MN  OP    
+ 
+      f←(32∘+)∘(×∘1.8)      ⍝ Fahrenheit from Celsius 
+      f ¯273 ¯40 0 100 
+¯459.4 ¯40 32 212 
+ 
+      c←f ⍣ ¯1              ⍝ Inverse: Celsius from Fahrenheit 
+      c ¯459.4 ¯40 32 212 
+¯273 ¯40 0 100 
+</desc><text>Star Diaeresis (⍣)</text></symbol>
+<symbol><char>.</char><desc>Dyadic operator:   Inner Product/Outer Product 
+ 
+      1 2 3 +.× 4 5 6 
+32 
+ 
+      1 2 3 ∘.× 4 5 6 
+ 4  5  6 
+ 8 10 12 
+12 15 18 
+</desc><text>Dot (.)</text></symbol>
+<symbol><char>∘</char><desc>Dyadic operator:   Compose 
+ 
+      (* ∘ 0.5) 1 2 3 4 5 
+1 1.4142136 1.7320508 2 2.236068 
+ 
+      1 2 3 ∘.× 4 5 6 
+ 4  5  6 
+ 8 10 12 
+12 15 18 
+</desc><text>Jot (∘)</text></symbol>
+<symbol><char>⍤</char><desc>Dyadic operator:   Rank 
+ 
+      (⍋ ⍤ 1) 2 3 ⍴ 'abczxy' 
+1 2 3 
+2 3 1 
+ 
+      10 20 30 (+ ⍤ 0 1) 3 4 ⍴ ⍳ 12 
+11 12 13 14 
+25 26 27 28 
+39 40 41 42 
+</desc><text>Jot Diaeresis (⍤)</text></symbol>
+<symbol><char>@</char><desc>Dyadic operator: At 
+ 
+      10 20@2 4 ⍳5 
+1 10 3 20 5 
+ 
+      ÷@2 4 ⍳5 
+1 0.5 3 0.25 5 
+ 
+      ⌽@(2∘|)⍳5 
+5 2 3 4 1 
+ 
+</desc><text>At (@)</text></symbol>
+<symbol><char>⍞</char><desc>Niladic syntax:     Character Input 
+ 
+      Input← ⍞ 
+(user types "Bob Dylan" and presses &lt;Enter&gt;) 
+ 
+      Input 
+Bob Dylan 
+</desc><text>Quote Quad (⍞)</text></symbol>
+<symbol><char>⎕</char><desc>Niladic syntax:     Evaluated Input 
+ 
+      A←⎕ 
+(user types "1 3.4 4÷5" and presses &lt;Enter&gt;) 
+ 
+      A 
+0.2 0.68 0.8 
+</desc><text>Quad (⎕)</text></symbol>
+<symbol><char>⍠</char><desc>Dyadic operator:   Variant 
+ 
+      ('a' ⎕R 'x') 'ABC' 
+ABC 
+ 
+      ('a' ⎕R 'x' ⍠ 'IC' 1) 'ABC' 
+xBC 
+</desc><text>Quad Colon (⍠)</text></symbol>
+<symbol><char>⌸</char><desc>Monadic operator:  Key 
+ 
+      {⍺ ⍵}⌸ 'Mississippi' 
+M 1 
+i 2 5 8 11 
+s 3 4 6 7 
+p 9 10 
+ 
+      {≢⍵}⌸ 'Mississippi' 
+1 4 4 2 
+ 
+      'Mississippi' {+/⍵}⌸ 3 1 4 1 5 9 2 6 5 3 6 
+3 18 16 8 
+</desc><text>Quad Equal (⌸)</text></symbol>
+<symbol><char>⌺</char><desc>Dyadic operator:  Stencil 
+ 
+      {⊂⍵}⌺3 3⊢4 4⍴⍳16 
+┌───────┬────────┬────────┬───────┐ 
+│0 0 0  │0 0 0   │0 0 0   │0 0 0  │ 
+│0 1 2  │1 2 3   │2 3 4   │3 4 0  │ 
+│0 5 6  │5 6 7   │6 7 8   │7 8 0  │ 
+├───────┼────────┼────────┼───────┤ 
+│0 1  2 │1  2  3 │ 2  3  4│ 3  4 0│ 
+│0 5  6 │5  6  7 │ 6  7  8│ 7  8 0│ 
+│0 9 10 │9 10 11 │10 11 12│11 12 0│ 
+├───────┼────────┼────────┼───────┤ 
+│0  5  6│ 5  6  7│ 6  7  8│ 7  8 0│ 
+│0  9 10│ 9 10 11│10 11 12│11 12 0│ 
+│0 13 14│13 14 15│14 15 16│15 16 0│ 
+├───────┼────────┼────────┼───────┤ 
+│0  9 10│ 9 10 11│10 11 12│11 12 0│ 
+│0 13 14│13 14 15│14 15 16│15 16 0│ 
+│0  0  0│ 0  0  0│ 0  0  0│ 0  0 0│ 
+└───────┴────────┴────────┴───────┘ 
+ 
+      {+/,⍵}⌺3 3⊢4 4⍴⍳16 
+14 24 30 22 
+33 54 63 45 
+57 90 99 69 
+46 72 78 54 
+ 
+</desc><text>Quad Diamond (⌺)</text></symbol>
+<symbol><char>⌶</char><desc>Monadic operator:  I-Beam 
+ 
+Provides a range of system-related services 
+according to specific argument values. 
+(see Dyalog Language Reference Guide) 
+ 
+      (1111⌶)⍬  ⍝ Number of virtual processors 
+4 
+</desc><text>I-Beam (⌶)</text></symbol>
+<symbol><char>⍎</char><desc>Monadic function:  Execute 
+ 
+      ⍎ '1+1' 
+2 
+ 
+Dyadic function:   Dyadic Execute 
+ 
+      '⎕SE' ⍎ 'B←42' 
+      ⎕SE.B 
+42 
+</desc><text>Hydrant (⍎)</text></symbol>
+<symbol><char>⍕</char><desc>Monadic function:  Format 
+ 
+      ⍕ 0.0000003  3.87687857858 
+3E¯7 3.8768786 
+ 
+Dyadic function:   Format By Specification 
+ 
+      8 3 ⍕ 0.00003 3.87687 
+   0.000   3.877 
+</desc><text>Thorn (⍕)</text></symbol>
+<symbol><char>⋄</char><desc>Statement separator: Separates a single line of code 
+                     into 2 (or more) APL expressions. 
+ 
+                     When a line of code is executed, the 
+                     expressions separated by diamonds are 
+                     evaluated sequentially from left to 
+                     right. 
+ 
+      A←10 ⋄ A+←1 ⋄ A÷2 
+5.5 
+</desc><text>Diamond (⋄)</text></symbol>
+<symbol><char>⍝</char><desc>Any text to the right of the ⍝ symbol is 
+commentary and not executable code. 
+</desc><text>Lamp (⍝)</text></symbol>
+<symbol><char>→</char><desc>Niladic syntax:    Abort 
+ 
+      → 
+ 
+Monadic syntax:  Branch 
+ 
+      → Label1 
+</desc><text>Right Arrow (→)</text></symbol>
+<symbol><char>⍵</char><desc>Right argument in direct functions 
+ 
+      {(+/⍵)÷⍴⍵} 1 2 3 4    ⍝ Arithmetic Mean (Average) 
+2.5 
+</desc><text>Omega (⍵)</text></symbol>
+<symbol><char>⍺</char><desc>Left argument in direct functions 
+ 
+      3 {⍵*÷⍺} 64     ⍝ ⍺th root 
+4 
+</desc><text>Alpha (⍺)</text></symbol>
+<symbol><char>∇</char><desc>Direct Function Self Reference (Recursion) 
+ 
+fact←{          ⍝ Factorial ⍵. 
+    ⍵≤1: 1      ⍝ Small ⍵, finished, 
+    ⍵×∇ ⍵-1     ⍝ Otherwise recur. 
+} 
+</desc><text>Del (∇)</text></symbol>
+<symbol><char>&amp;</char><desc>Monadic operator:  Spawn 
+ 
+      ⍎&amp; '÷2 4' 
+0.5 0.25 
+ 
+      20÷&amp;2 4 
+10 5 
+</desc><text>Ampersand (&amp;)</text></symbol>
+<symbol><char>¯</char><desc>If a number is prefixed by the ¯ symbol (also known as  
+"high minus") it means that the number is negative. 
+ 
+      1+¯1 0 1 ¯3 
+0 1 2 ¯2 
+</desc><text>High Minus (¯)</text></symbol>
+<symbol><char>⍬</char><desc>Niladic syntax:     Empty Numeric Vector 
+ 
+      ⍬≡⍳0 
+1 
+      ⍬≢'' 
+1 
+      ⍬≡0⍴0 
+1 
+</desc><text>Zilde (⍬)</text></symbol>
+</lbar>
