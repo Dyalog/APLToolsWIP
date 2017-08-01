@@ -9,8 +9,7 @@
  :If 2=≡list  ⍝ "simple" function call from the user
      :If 0=⎕NC'prompt' ⋄ prompt←'Please make a selection' ⋄ :EndIf
 
-     'F1'⎕WC'Form'('Size' 400 500)('Coord' 'Pixel')('Caption'prompt)
-     'F1.R'⎕WC'HTMLRenderer'('ASChild' 1)('Size' 400 500)('Posn' 0 0)
+     'F1'⎕WC'HTMLRenderer'('ASChild' 0)('Size' 400 500)('Coord' 'ScaledPixel')
 
      html←'<html><head><style>',(1⊃⎕NGET ChosenPath,'\chosen.min.css'),'</style>'
      html,←'<script type="text/javascript" >',(1⊃⎕NGET PlugInsPath,'JQuery\jquery-1.12.3.min.js'),'</script>'
@@ -26,7 +25,10 @@
 ⍝     html,←'        break;'
 ⍝     html,←'    }'
 ⍝     html,←'});'
+     html,←'<link rel="shortcut icon" type="image/png" href="http://dyalog.com/favicon.ico">'
      html,←'</script>'
+     html,←'<title>',prompt,'</title>'  ⍝ HTMLify the title?
+     html,←'<meta charset="UTF-8">'
      html,←'</head><body><form method="post" action="#submit">'
      html,←'<div><select name="select" id="select">'
      :For i :In list
@@ -35,8 +37,8 @@
      html,←'</select></div>'
      html,←'<input type="submit" value="Ok" style="margin-top: 2em;display: block; margin: 0 auto;">'
      html,←'</form></body></html>'
-     F1.R.HTML←html
-     F1.R.onHTTPRequest←'Select'  ⍝ avoid creating too many fns...
+     F1.HTML←html
+     F1.onHTTPRequest←'Select'  ⍝ avoid creating too many fns...
      'F1'⎕WS'Event'SelectedEntry 1
      R←⎕DQ'F1'
      ⎕EX'F1'
