@@ -69,6 +69,7 @@
      
                   :Else
                       r←matches{⎕ML←1 ⋄ 1=≡⍺:⍵,(⎕UCS 13),⍺ ⋄ ∊(⍵,⎕UCS 13),⍺,¨⎕UCS 13}']',searchTerm∆
+                      :return
                   :EndIf
                   :Return
  ⍝                 :Else  ⍝ got result from 911
