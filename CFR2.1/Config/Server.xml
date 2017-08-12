@@ -1,0 +1,13 @@
+<Server>
+    <Name>Conference Registration System</Name>
+    <AllowedHttpCommands>get,put,delete,post</AllowedHttpCommands>
+    <Lang>en</Lang>
+    <LogMessageLevel>1</LogMessageLevel> <!-- 0-none -1-all 1-error/important 2-warning 4-informational 8-Transactional -->
+    <Production>0</Production>         <!-- 1-running in production mode, 0-development mode (enable debugging framework) --> 
+    <TrapErrors>0</TrapErrors>    <!-- Valid: 0=Crash, 1=Trap and Log errors -->
+    <Debug>2</Debug>              <!-- Valid: 0=No Debug Info, 1=Debug Info, 2=Allow Editing -->
+    <MailMethod>NONE</MailMethod> <!-- Valid: SMTP|NET|NONE -->
+    <SessionTimeout>2h</SessionTimeout>                <!-- session timeout -->
+    <ClassName>CFR_Server</ClassName>    <!-- running specific server MiServer -->
+    <Port>8088</Port>
+</Server>

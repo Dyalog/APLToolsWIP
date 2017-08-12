@@ -1,0 +1,41 @@
+﻿<Application>
+	  <!-- might (but is not yet) be used to configure pswd-security -->
+    <PswdSec>6/1/1/1/0</PswdSec>        <!-- Password-Security: min. length/uppercase/lowercase/digits/special-chars -->
+    <SpecialChars>,;.:-_!#+*=(){}[]</SpecialChars>  <!-- Special characters for passwords -->
+
+    <!-- following paths refer to file-system of the TARGET-Machine 
+    on which your processes will run (as set in API_Hosts -->
+    <APIHomeDir>./API</APIHomeDir>
+    <APIDataDir>./Data</APIDataDir>
+    
+    <!-- API might be the name of a workspace OR a .dyalog-file (in APIHomeDir)
+    Extension is required!
+    -->
+    <API>ConfApp.dyalog</API>
+    <APIRequires>Files,Strings,HtmlElement,SQL,Boot,XML</APIRequires>   <!-- ns to be loaded for the API -->
+    <APIType>Instance</APIType>  <!-- "Shared" uses one instance for all, "Instance" creates one instance of API per session - depends on your design! -->
+    <APIClassName>ConfApp</APIClassName>   <!-- Name of class/namespace in API (relevant when API is in a DWS  -->
+    
+    <APIPath>#.App</APIPath>
+    
+    <!-- API_Hosts: comma-separated list of hosts
+    Special values: 
+    inSitu - run within MS-Workspace (facilitates debugging, not recommend for productive use)
+		localhost
+    ::1 - ="localhost" for IPv6 ("127.0.0.1" may cause issues with Conga)
+    Currently APLProcess does not support linking to other machines, so you can only switch between
+    inSitu or ::1 currently - but APLProcess "may develop that ability" (MK),
+    so we're prepared for that already! ;-)
+    -->
+    <API_Hosts>::1</API_Hosts>
+    <API_HostsL>127.0.0.1</API_HostsL>
+    <API_Hostsi>inSitu</API_Hostsi>
+    <API_Ports>9081,9082,9083,9084,9085,9086,9087,9088,9089,9090</API_Ports>
+
+   <!--- Worldpay-Stuff -->
+   <PaymentURL>https://secure-test.worldpay.com/wcc/purchase</PaymentURL>
+   <CallbackURL>/PaymentResponse.dyalog</CallbackURL> <!-- actually not used by WP -->
+   <testMode>1</testMode>
+   <OurDomain>confreg-test.dyalog.com</OurDomain>
+
+</Application>

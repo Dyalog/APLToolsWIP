@@ -1,0 +1,19 @@
+﻿:class wptest : MiPage
+
+∇ Compose;cmd
+:access public
+
+cmd←⎕New #.HttpCommand'post'
+cmd.URL←'https://secure-test.worldpay.com/wcc/purchase'
+
+cmd.Params←⎕ns''
+cmd.Params.(address1 address2 address3 town region)←'Dyalog Ltd' 'Minchens Court' 'Bramley' 'Basingstoke' 'Hampshire'
+cmd.Params.(postcode Country tel fax email)←'RG26 5BH' 'GB' '12345678' '12345678' 'email@example.com'
+cmd.Params.(instId cartId currency desc testMode amount goferit)←'283350' 'abc123' 'EUR' 'Dyalog Conference Stuff' '100' '2300' 'Pay Now'
+res←cmd.Run
+
+Add res.Data
+
+∇
+
+:endclass

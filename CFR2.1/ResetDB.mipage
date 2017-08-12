@@ -1,0 +1,9 @@
+:class ResetDB : ConfPage 
+
+∇ Compose
+:access public 
+SQLDo'DELETE FROM Bookings'
+Add 'Database has been reset!'
+∇
+
+:endclass

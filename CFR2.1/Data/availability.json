@@ -1,0 +1,1 @@
+[  {    "Roomtype": "Single",    "Availability": [40,55,60,60,60,3]  },  {    "Roomtype": "Double",    "Availability":[12,12,12,12,12,7]  },  {    "Roomtype": "Twin",    "Availability":[13,13,13,13,13,8]  }]

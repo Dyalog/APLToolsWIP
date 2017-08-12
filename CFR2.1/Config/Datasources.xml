@@ -1,0 +1,10 @@
+<Datasources>
+ 
+  <Datasource>
+    <Name>Confreg</Name>
+    <DSN>Confreg</DSN>
+    <User>confreg</User>
+    <Password>Dyal0g</Password>
+  </Datasource>
+
+</Datasources>

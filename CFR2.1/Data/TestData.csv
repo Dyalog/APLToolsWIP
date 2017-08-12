@@ -1,0 +1,35 @@
+﻿Registration Number;Invoice Amount;Early-Bird;DelegateName;Email;CompanyName;Address;Town;Region;Postcode;Country;RoomType;cb11;cb12;cb13;cb14;cb15;cb16;cb20;cb21;cb22;cb23;cb24;cb25;cb34;Courses;SecondName;SecondEmail
+1;1490;N;Petrus McCleary;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;1;1;1;1;1;1;1;1;1;1;1;1;1;SA2,SP3,TP2;;
+4;1828;N;Primo Heymans;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Double (Sharing with guest/spouse);1;1;1;1;1;0;1;1;1;1;1;0;1;SA1,SP1,TP2;Amy Dixon;testdata@dyalog.com
+5;1165;N;Engin Dennell;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Sweden;Single;0;1;1;1;1;0;0;1;1;1;1;0;1;;;
+6;1767;N;Leo Kovac;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Russia;Double (Sharing with Guest/Spouse);0;1;1;1;1;0;1;1;1;1;1;1;1;;Antonia Hardy;testdata@dyalog.com
+7;1260;N;Irina Barsamian;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;1;1;1;1;1;0;0;1;1;1;1;0;1;SA2,SP2;;
+8;1988;N;Theodoulos Hirsch;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Double (Sharing with Guest/Spouse);1;1;1;1;1;1;1;1;1;1;1;1;1;SA4,SP3,TP2;Mildred Green;testdata@dyalog.com
+17;1320;N;Filippa Ó Maoilsheachlainn;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;1;1;1;1;1;1;0;1;1;1;1;0;1;SA3,SP3,TP2;;
+22;1788;N;Olubunmi Lane;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Double (Sharing with Guest/Spouse);1;1;1;1;1;1;0;1;1;1;1;0;1;SP4,TP4;Joanna Fuller;testdata@dyalog.com
+23;1300;N;Clint Wouters;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Denmark;Double (Sharing with another Delegate);1;1;1;1;1;1;1;1;1;1;1;1;1;SA3,SP3,TP3;;
+26;1395;N;Telesphorus Martin;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;France;Single;0;1;1;1;1;1;1;1;1;1;1;1;1;TP4;;
+27;1345;N;Tatiana Monti;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United States;Single;1;1;1;1;1;0;1;1;1;1;1;0;1;SA2,SP4;;
+37;1567;N;Holger Buchvarov;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United States;Double (Sharing with Guest/Spouse);0;1;1;1;1;0;0;1;1;1;1;0;1;;Dawn Greene;testdata@dyalog.com
+40;1405;N;Valdemar Ethans;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United States;Single;1;1;1;1;1;1;1;1;1;1;1;0;1;SA2,SP3,TP2;;
+48;1250;N;Katsurou Kjeldsen;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Italy;Double (Sharing with another Delegate);1;1;1;1;1;1;1;1;1;1;1;0;1;SA3,SP4,TP4;;
+69;1080;N;Tendaji Pagano;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;0;1;1;1;1;0;0;0;1;1;1;0;1;;;
+70;1667;N;Kelda Hou;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Sweden;Double (Sharing with Guest/Spouse);0;1;1;1;1;0;1;1;1;1;1;0;1;;Mona Fernandez;testdata@dyalog.com
+72;1310;N;Ukaleq De Luca;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Canada;Single;0;1;1;1;1;1;0;1;1;1;1;1;1;TP3;;
+73;1405;N;Anabela Du;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United States;Single;1;1;1;1;1;1;0;1;1;1;1;1;1;SA4,SP2,TP4;;
+74;860;N;Zarah Porter;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Finland;Single;1;1;0;0;0;0;1;1;0;0;0;0;0;SA3,SP4;;
+82;1430;N;Vlasiy Gwozdek;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United States;Single;1;1;1;1;1;0;1;1;1;1;1;1;1;SA4,SP4;;
+83;1010;N;Olívia Hershey;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United States;Double (Sharing with another Delegate);0;1;1;1;1;0;0;1;1;1;1;0;1;;;
+87;775;N;Suzanne Akselsen;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Finland;Single;1;1;0;0;0;0;0;1;0;0;0;0;0;SA1,SP2;;
+89;1467;N;Kalisha Trengove;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Canada;Double (Sharing with Guest/Spouse);0;1;1;1;1;0;0;0;1;1;1;0;1;;Cristina Goodman;testdata@dyalog.com
+99;1130;N;Mimi Horn;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;1;1;1;0;0;0;0;1;1;0;0;0;0;SA4,SP4;;
+100;420;N;Taylan Lindström;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Non-residential;0;1;0;0;0;0;0;0;0;0;0;0;0;;;
+102;775;N;Bronisław Booner;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;0;1;1;0;0;0;0;0;1;0;0;0;0;;;
+103;1728;N;Dhaval Ó Taidhg;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Sweden;Double (Sharing with Guest/Spouse);1;1;1;1;1;0;0;1;1;1;1;0;1;SA3,SP2;Vicky Park;testdata@dyalog.com
+130;1215;N;Orsola Couman;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Denmark;Single;1;1;1;0;0;0;1;1;1;0;0;0;0;SA3,SP4;;
+131;860;N;Hildebert Rose;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Denmark;Single;0;1;1;0;0;0;0;1;1;0;0;0;0;;;
+136;945;N;Magnus Atkins;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Germany;Single;1;1;0;0;0;0;1;1;1;0;0;0;0;SA2,SP2;;
+138;860;N;Margrit Antoniou;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;0;1;1;0;0;0;0;0;1;1;0;0;0;;;
+142;1655;N;Anne Franić;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;Denmark;Single;1;1;1;1;0;0;1;1;1;1;1;0;1;SA3,SP3;;
+143;1130;N;Philomel Vogel;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Single;1;0;0;1;1;1;0;1;0;0;1;0;1;SA1,SP1,TP2;;
+150;420;N;Mihail Gerst;test@testdata.com;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;Dyalog Test Data;;United Kingdom;Non-residential;0;0;1;0;0;0;0;0;0;0;0;0;0;;;
