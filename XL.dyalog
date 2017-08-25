@@ -1,4 +1,5 @@
 ﻿:Namespace XL
+    sfExcelURL←'http://aplwiki.com/sfExcel'   ⍝ adjust when it moves to a new home
     (⎕IO ⎕ML ⎕WX)←1 1 3
 
 
@@ -68,7 +69,7 @@
           →0
       :Else
          ⍝ use sfExcel to read from file
-          :If preFlightCheck=0   ⍝ should we trap the errors here? Guess we'll leave it to the user to :Trap around LoadXL...!
+          :If preFlightCheck=0   ⍝ is sfExcel available???
               TitleRows←larg GetParam'TitleRows' 0
               GetAs←1(819⌶)larg GetParam'GetAs' 'VALUE'
      
@@ -83,7 +84,7 @@
      
                   :If 0<TitleRows         ⍝ retrieve title-rows first and adjust range (will use faster methods if GetAs is given)
                       rc←rc_tit←range
-                      rc_tit[3]←rc_tit[1]+TitleRows
+                      rc_tit[3]←TitleRows
                       r1←xl.GetText2 rc_tit
                       rc[1]+←TitleRows
                       range←rc
@@ -273,7 +274,6 @@
       →(9=⎕NC'sfExcel')/z←0 ⍝ only execute if sfExcel is not yet loaded, so dev can load it in advance (or perhaps even save it with his WS)
      
      
-     
       SourceFile←{ ⍝ Get pathname to sourcefile for ref ⍵
           file←⊃(4∘⊃¨(/⍨)(⍵≡⊃)¨)5177⌶⍬ ⍝ ⎕FIX
           ''≡file:⍵.SALT_Data.SourceFile ⍝ SALT
@@ -283,41 +283,10 @@
       path←1⊃⎕NPARTS SourceFile ⎕THIS
      
       :If ~⎕NEXISTS script←path,'sfExcel.dyalog'
-          {}⎕FIX'file://',(2 ⎕NQ'.' 'GetEnvironment' 'dyalog'),'/Library/Conga/HttpCommand.dyalog'
-          data←HttpCommand.Get'http://aplwiki.com/sfExcel'
-          :If ~z←200≠data.HttpStatus   ⍝ ⎕en 1
-                 ⍝ get all URLs of attachments related to sfExcel
-              urls←('link rel="Appendix" title="sfExcel.*" href="(.*)">'⎕S'\1')data.Data
-                 ⍝ use the last URL and replace "view" with "get" to retrieve the file
-                 ⍝ (or maybe it would be better to always get a specific version that we know is compatible?)
-              url←'http://aplwiki.com',('view'⎕R'get')⊃¯1↑urls
-                 ⍝ decode the argument-separator &
-              url←('amp;'⎕R'')url
-                 ⍝ get it
-              data←HttpCommand.Get url
-              :If 1=z←1+200≠data.HttpStatus    ⍝ ⎕en 2
-                  :Trap 0
-                      data.Data ⎕NPUT script
-                      ⎕←'Downloaded sfExcel and saved as ',script   ⍝ output some info into the session
-                      z←0
-                  :Else   ⍝ ⎕en 3
-                      em←'Error while attempting to write ',script
-                      ↑⎕DM
-                      z←3
-                  :EndTrap
-              :Else
-                  em←'Error downloading sfExcel from APLWiki: ',data.HttpStatusMsg
-                  em,←(⎕UCS 13),'URL used was ',url
-              :EndIf
-          :Else
-              em←'Error retrieving the sfExcel-Page on APLWiki: ',data.HttpStatusMsg
-          :EndIf
-          :If z≠0
-              lm←⊂'sfExcel was not found and the automatic install failed.'
-              lm,←⊂'Please retrieve it from http://aplwiki.com/sfExcel'
-              lm,←⊂'and save it as ',script
-              ⎕SIGNAL⊂('Message'(∊((⊂em),lm),¨⎕UCS 10))('EN'z)
-          :EndIf
+          lm←⊂'sfExcel was not found.'
+          lm,←⊂'Please retrieve it from ',sfExcelURL
+          lm,←⊂'and save it as ',script
+          ⎕SIGNAL⊂('Message'(∊lm,¨⎕UCS 10))('EN'22)
       :EndIf
      
       {}⎕FIX'file://',script  ⍝ load it
