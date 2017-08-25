@@ -347,9 +347,3 @@
     :endsection
 
 :EndNamespace
-⍝)(!GetParam!mbaas!2017 8 25 11 0 16 0!0
-⍝)(!Load!mbaas!2017 8 25 11 0 16 0!0
-⍝)(!Save!mbaas!2017 8 25 11 1 13 0!0
-⍝)(!WindowsOnly!mbaas!2017 8 25 11 0 16 0!0
-⍝)(!isInstance!mbaas!2017 8 25 11 0 16 0!0
-⍝)(!preFlightCheck!mbaas!2017 8 25 11 0 16 0!0
