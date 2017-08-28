@@ -61,12 +61,12 @@
 ⍝
 ⍝ Public Shared Methods::
 ⍝   html←tag Enc content - enclose content in an HTML tag
-⍝   Example: 'div class="foo" Enc 'Hello!'  >>  <div class="foo">Hello!</div>
+⍝   Example: 'div class="foo" Enc 'Hello!'  results in>>  <div class="foo">Hello!</div>
 ⍝
 ⍝ Examples::
 ⍝
 ⍝   Using only positional parameters:
-⍝      mb←⎕NEW MsgBox ('Oops!' '<h2>Oh no!</h2>Something went wrong' 'Error')
+⍝      mb←⎕NEW MsgBox ('Oops!' '<b>Oh no!</b><br/>Something went wrong' 'Error')
 ⍝      btn←mb.Run
 ⍝
 ⍝   Using positional and named parameters:
@@ -74,7 +74,7 @@
 ⍝      btn←mb.Run
 ⍝
 ⍝   Do it in a single line:
-⍝      btn←(⎕NEW MsgBox (('Style' 'Error')('Text' '<h2>Oh no!</h2>Something went wrong')('Caption' 'Oops!'))).Run
+⍝      btn←(⎕NEW MsgBox (('Style' 'Error')('Text' '<b>Oh no!</b><br/>Something went wrong')('Caption' 'Oops!'))).Run
 ⍝
 ⍝   Adjust the size:
 ⍝      mb←⎕NEW MsgBox ('Oops!' ('Btns' ('Ignore it' 'Give up')) ('Text' 'Something went wrong'))
@@ -125,7 +125,7 @@
       :EndFor
     ∇
 
-    ∇ r←Run;ind;html;head;btns;body;msgStyle;renderer
+    ∇ r←Run;ind;html;head;btns;body;msgStyle;renderer;tab
       :Access public
       Clicked←¯1 ⍝ default if form is closed without clicking a button
       :If 5<ind←'msg' 'info' 'warn' 'error' 'query'⍳msgStyle←(819⌶)⊆Style
@@ -136,14 +136,15 @@
       :EndIf
       head←'title'Enc Caption
       head,←'style'Enc CSS
+      head,←'script'Enc JavaScript
       head←'head'Enc head
-      body←''
-      :If ind≠1
-          body,←('div class="glyph ',(⊃msgStyle),'"')Enc ind⊃' i!!?'
+      tab←''
+      :If ind≠1 ⍝ everything but 'msg' gets a glyph
+          tab,←('td onclick="resize()" class="glyph ',(⊃msgStyle),'"')Enc ind⊃' i!!?'
       :EndIf
-      body,←'div class="msgText"'Enc Text
-      body,←'div class="buttons"'Enc'form action=""'Enc∊(⍳≢Btns){('button name="btn" value="',(⍕⍺),'"')Enc ⍵}¨Btns
-      body←⊃Enc/'div class="container"' 'div class="content"'body
+      tab←'tr' Enc tab,'td class="msgText"'Enc Text
+      tab←'table class="content"' Enc tab,'tr' Enc ((ind≠1)/'td' Enc''),'td class="buttons"'Enc'form action=""'Enc∊(⍳≢Btns){('button name="btn" value="',(⍕⍺),'"')Enc ⍵}¨Btns
+      body←⊃Enc/'div id="outer" class="outer"' 'div class="inner"' tab
       renderer←⎕NEW'HTMLRenderer'(('Size'Size)('Coord'Coord),Props)
       renderer.HTML←head,body
       renderer.onHTTPRequest←'mbCallback'
@@ -158,9 +159,19 @@
       ⎕NQ(1⊃args)'Close' ⍝ queue "Close" event
     ∇
 
+    ∇ r←JavaScript
+      r←ScriptFollows             
+    ⍝ function resize(){
+    ⍝   var x = document.getElementById("outer");
+    ⍝   alert("h: " + x.offsetHeight + " w: " + x.offsetWidth);
+    ⍝   window.resizeTo((x.offsetWidth + 50),(x.offsetHeight + 50));
+    ⍝ }
+
+    ∇
+
     ∇ r←CSS
-⍝ this is the CSS for MsgBox
-⍝ modify it to suit your
+    ⍝ this is the CSS for MsgBox
+    ⍝ modify it to suit your
      
       r←ScriptFollows
 ⍝ .info,.query{
@@ -175,22 +186,23 @@
 ⍝   color:yellow;
 ⍝   border-color:yellow;
 ⍝   }
-⍝ .container{
-⍝   display:table;
-⍝   width:80%;
-⍝   height:80%;
+⍝ .outer{
 ⍝   position:absolute;
-⍝   top:0;
-⍝   bottom:0;
-⍝   left: 0;
-⍝   right: 0;
-⍝   margin:auto;
-⍝   /* border:3px solid;
-⍝   border-radius:25px;
-⍝   padding:10px 40px;  */
+⍝   display:table;
+⍝   width:90%;
+⍝   height:90%;
+⍝   left:5%;
+⍝   top:5%;
+⍝   }
+⍝ .inner{
+⍝   display:table-cell;
+⍝   vertical-align:middle;
+⍝   text-align:center;
+⍝   } 
+⍝ .content{
+⍝   display:inline-block;
 ⍝   }
 ⍝ .glyph{
-⍝   display:table-cell;
 ⍝   font-size:3em;
 ⍝   font-weight:800;
 ⍝   float:left;
@@ -200,21 +212,12 @@
 ⍝   margin-right:20px;
 ⍝   border-radius:10px;
 ⍝   }
+⍝ td{
+⍝   text-align: middle;
+⍝   }
 ⍝ .msgText{
-⍝   display:table-cell;
-⍝   }
-⍝ .content{
-⍝   display:table-row;
-⍝   color:black;
-⍝   position:absolute;
-⍝   top:25%;
-⍝   bottom:50%;
-⍝   left:10%;
-⍝   right:10%;
-⍝   margin:auto;
-⍝   }
-⍝ .buttons{
-⍝   display:table-row;
+⍝   font-family: arial;
+⍝   font-size:1.5em;
 ⍝   }
 ⍝ button{
 ⍝   margin:20px 5px;
