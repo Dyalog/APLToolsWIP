@@ -222,7 +222,7 @@
 ⍝ button{
 ⍝   margin:20px 5px;
 ⍝   font-size:1.3em;
-⍝   border-radius:10px;
+⍝   border-radius:5px;
 ⍝   }
 ⍝ form{
 ⍝   text-align:right;
