@@ -274,12 +274,7 @@
       :Access public
       :If 0=⊃(rc msg)←Do'top ',(⍕n),' 0'
       :AndIf 0=⊃(rc msg)←ReadBuffered
-          msg←splitOnCRLF msg
-          :If ~0∊⍴i←⍸wrapped←(⊃¨msg)∊⎕UCS 32 9 ⍝ mark "wrapped" headers (begin with space or horizontal tab)
-              msg[i]←{' ',⍵↓⍨+/∧\⍵∊⎕UCS 32 9}¨msg[i]
-              msg←∊¨(~wrapped)⊂msg
-          :EndIf
-          msg←↑dlb¨¨':'splitFirst¨msg
+          msg←parseHeaders msg
       :EndIf
     ∇
 
@@ -321,7 +316,6 @@
     split←{⍺←' ' ⋄ ⍺(≠⊆⊢)⍵}
     splitFirst←{⍺←' '⋄ ⍵⊆⍨~<\⍺⍷⍵}
     splitOnCRLF←{2↓¨CRLF(⍷⊂⊢)(2×CRLF≡2↑⍵)↓CRLF,⍵}
-    splitAt←{⍺⊂⍨<\⍵⍷⍺}
     lc←0∘(819⌶)
     toNum←{⊃(//)⎕VFI ⍵}
     splitAfter←{∧/m←~<\⍺⍷⍵:'' ⋄ ⍵⊆⍨(≢⍵)↑((¯1+≢⍺)⍴1),m}
@@ -426,7 +420,6 @@
 
     ∇ LDRC←rootname ResolveCongaRef CongaRef;z;failed
     ⍝ CongaRef could be a charvec, reference to the Conga or DRC namespaces, or reference to an iConga instance
-      :Access public shared  ⍝!!! testing only  - remove :Access after testing
       LDRC←'' ⋄ failed←0
       :Select ⎕NC⊂'CongaRef' ⍝ what is it?
       :Case 9.1 ⍝ namespace?  e.g. CongaRef←DRC or Conga
