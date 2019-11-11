@@ -8,7 +8,7 @@
     (⎕IO ⎕ML)←1
 
     :field public Server←''  ⍝ server address
-    :field public Port←25    ⍝ server port (default 25)
+    :field public Port←⍬     ⍝ server port (default depends on whether running secure 587/25 or 465)
     :field public From←''    ⍝ default from address for new messages
     :field public Userid←''  ⍝ userid for authentication (defaults to From)
     :field public Domain←''  ⍝ fully qualified domain name for EHLO command
@@ -16,6 +16,7 @@
     :field public ReplyTo←'' ⍝ optional reply to email address
     :field public Password←''⍝ optional password (if server requires authentication)
     :field public XMailer←'Dyalog SMTP Client 1.0'  ⍝ client identifier
+    :field public Secure←0   ⍝ indicates whether to use SSL/TLS, 0 = no, 1 = yes
     :field public CongaRootName←'SMTP'
 
     :field public shared CongaRef←''   ⍝ user-supplied reference to location of Conga namespace
@@ -59,14 +60,33 @@
     unless←↓⍨
     okay←{0=⊃⍺.(rc msg log)←{3↑⍵,(≢⍵)↓¯99 '' ''},⊆⍵}
     empty←0∘∊⍴
+    lc←0∘(819⌶)
 
     ∇ r←CRLF
       r←⎕UCS 13 10
     ∇
 
-    ∇ r←Connected
+    ∇ (rc msg)←Connected;r;state
       :Access public
-      r←Clt≢''
+      msg←'SMTP server has not been connected'
+      →0↓⍨rc←Clt≢''
+      :Trap 0 ⍝ handle any Conga error, LDRC not defined, etc
+          r←LDRC.Describe Clt
+      :Else
+          →0⊣(rc msg)←0 'Conga could not query client'
+      :EndTrap
+      :If 0=⊃r ⍝ good Conga return code?
+          :Select state←lc 2⊃3↑2⊃r
+          :Case 'client'
+              (rc msg)←1 'connected'
+          :Case 'error'
+              (rc msg)←0 'not connected (possible server timeout)'
+          :Else
+              (rc msg)←0 'unknown client state: ',∊⍕state
+          :EndSelect
+      :Else
+          (rc msg)←0 'non-zero Conga return code'
+      :EndIf
     ∇
 
     :endsection
@@ -83,12 +103,19 @@
       ⍝      or a namespace containing named elements
       :Select ⎕NC⊂'args'
       :Case 2.1 ⍝ variable
-          (Server Port Userid Password From ReplyTo)←(Server Port Userid Password From ReplyTo){(≢⍺)↑⍵,(≢⍵)↓⍺},⊆args
+          (Server Port Userid Password From ReplyTo Secure)←(Server Port Userid Password From ReplyTo Secure){(≢⍺)↑⍵,(≢⍵)↓⍺},⊆args
       :Case 9,1 ⍝ namespace
-          (Server Port Userid Password From ReplyTo)←args{6::⍎⍵ ⋄ ⍺⍎⍵}¨'Server' 'Port' 'Userid' 'Password' 'From' 'ReplyTo'
+          (Server Port Userid Password From ReplyTo Secure)←args{6::⍎⍵ ⋄ ⍺⍎⍵}¨'Server' 'Port' 'Userid' 'Password' 'From' 'ReplyTo' 'Secure'
       :Else
           ⎕←'*** invalid constructor argument'
       :EndSelect
+    ∇
+
+    ∇ unmake
+      :Implements destructor
+      :Trap 0
+          {}Logoff
+      :EndTrap
     ∇
 
     ∇ r←NewMessage args
@@ -143,11 +170,13 @@
      Exit:
     ∇
 
-    ∇ (rc msg)←Connect;r;uid;dom
+    ∇ (rc msg)←Connect;r;uid;dom;cert
       :Access public
       (rc msg)←¯1 ''
       :If 0∊⍴Server ⋄ →Exit⊣msg←'Server not defined' ⋄ :EndIf
-     
+      
+      :if 0∊⍴Port
+
       Port←⊃Port
       :If ~Port∊⍳65535 ⋄ →Exit⊣msg←'Invalid Port' ⋄ :EndIf
      
@@ -163,7 +192,14 @@
           (rc msg)←Init CongaRootName
       :EndIf
      
-      :Select ⊃r←LDRC.Clt''Server Port'text' 2000000
+      cert←⍬
+      :If Secure
+          :If 0∊⍴LDRC.X509Cert.LDRC ⋄ LDRC.X509Cert.LDRC←LDRC ⋄ :EndIf
+          cert←⊂'X509'(⎕NEW LDRC.X509Cert)
+      :EndIf
+
+     
+      :Select ⊃r←LDRC.Clt(''Server Port'text' 2000000,cert)
       :Case 0
           _clt←2⊃r                   ⍝ Conga client name
           :If 0=⊃(rc msg)←Do''       ⍝ retrieve the server response
@@ -214,12 +250,12 @@
       (rc msg)←Do'NOOP'
     ∇
 
-    ∇ (rc msg)←reset
+    ∇ (rc msg)←Reset
       :Access public
       (rc msg)←Do'RSET'
     ∇
 
-    ∇ r←Do cmd;cnt;rc
+    ∇ r←Do cmd;cnt;rc;c
       :Access public
       →go
     ⍝ Send a command to an smtp server and retrieve answer
@@ -287,7 +323,7 @@
     ⍝ 553 Requested action not taken: mailbox name not allowed (typo?)
     ⍝ 555 Only used by this program to indicate a special error condition
      go:
-      :If Connected                     ⍝ if we're connected
+      :If ⊃c←Connected                   ⍝ if we're connected
           :If ~empty cmd
               :If 0≠⊃rc←LDRC.Send Clt(cmd,CRLF)
                   →Exit⊣r←'555 Conga error: ',,⍕2↑rc
@@ -306,7 +342,7 @@
               r←'555 Conga error: ',,⍕2↑rc
           :EndSelect
       :Else                              ⍝ if the socket does not exist
-          r←'555 SMTP server not connected'
+          r←'555 SMTP server not connected - ',2⊃c
       :EndIf
      Exit:
       r←((⊃r)∊'45')r                    ⍝ check for error and return

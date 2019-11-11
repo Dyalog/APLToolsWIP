@@ -51,8 +51,8 @@
 ⍝              No additional processing or validation is performed
 ⍝
 ⍝ Additional Public Fields::
-⍝   CSS   - You can set this to override any of the default CSS settings for MsgBox.  
-⍝           It must be validly formatted CSS. e.g. '.msgText{font-family:APL385 Unicode;}' 
+⍝   CSS   - You can set this to override any of the default CSS settings for MsgBox.
+⍝           It must be validly formatted CSS. e.g. '.msgText{font-family:APL385 Unicode;}'
 ⍝   Coord - The coordinate system to use for HTMLRenderer (default 'ScaledPixel')
 ⍝   Size  - The size for the HTMLRenderer window (default (400 800)).
 ⍝           If you change Coord to 'Prop', you should probably change Size as well :)
@@ -89,91 +89,115 @@
 ⍝      btn←mb.Run
 
 
-∇ r←Version
-  :Access public shared
-  r←'MsgBox' '1.0.1' '2017-08-28'
-∇
+    ∇ r←Version
+      :Access public shared
+      r←'MsgBox' '1.0.1' '2017-08-28'
+    ∇
 
-:field public Caption←''
-:field public Style←'msg'  ⍝ valid styles are msg, info, warn, error, query
-:field public Text←''
-:field public Btns←''
-:field public Coord←'ScaledPixel' 
-:field public CSS←''
-:field public Props←⍬
-:field public Size←400 800
+    :field public Caption←''
+    :field public Style←'msg'  ⍝ valid styles are msg, info, warn, error, query
+    :field public Text←''
+    :field public Btns←''
+    :field public Coord←'ScaledPixel'
+    :field public CSS←''
+    :field public Props←⍬
+    :field public Size←400 800
 
-∇ make
-  :Access public
-  :Implements constructor
-∇
+    ∇ make
+      :Access public
+      :Implements constructor
+    ∇
 
-∇ make1 args;i;positional;ind;d
-  :Access public
-  :Implements constructor
-  args←,⊆args
-  positional←1
-  :For i :In ⍳≢args ⋄ d←i⊃args
-      :If positional
-          :If i<4
-              :If positional←1=≡d ⋄ (Caption Text Style)←(args[i]@i)Caption Text Style
+    ∇ make1 args;i;positional;ind;d
+      :Access public
+      :Implements constructor
+      args←,⊆args
+      positional←1
+      :For i :In ⍳≢args ⋄ d←i⊃args
+          :If positional
+              :If i<4
+                  :If positional←1=≡d ⋄ (Caption Text Style)←(args[i]@i)Caption Text Style
+                  :EndIf
+              :ElseIf i=4 ⋄ Btns←{(⊂⍣(2-≡⍵))⍵}{((,⊂'Btns')≡1↑⍵)↓⍵}d
+              :ElseIf i=5 ⋄ Props←d
+              :Else ⋄ 'Too many arguments'⎕SIGNAL 11
               :EndIf
-          :ElseIf i=4 ⋄ Btns←{(⊂⍣(2-≡⍵))⍵}{((,⊂'Btns')≡1↑⍵)↓⍵}d
-          :ElseIf i=5 ⋄ Props←d
-          :Else ⋄ 'Too many arguments'⎕SIGNAL 11
           :EndIf
-      :EndIf
-      :If ~positional
-          :Select ind←⊃'Caption' 'Text' 'Style' 'Btns' 'Props'⍳1↑d
-          :Case 4 ⋄ Btns←{2<d←≡⍵:(⊃⍣(d-2))⍵ ⋄ (⊂⍣(2-d))⍵}{((,⊂'Btns')≡1↑⍵)↓⍵}d
-          :CaseList 1 2 3 ⋄ (Caption Text Style)←(d[2]@ind)Caption Text Style
-          :Case 5 ⋄ Props←1↓d
-          :Else ⋄ ('Invalid argument: ',,⍕d)⎕SIGNAL 11
-          :EndSelect
-      :EndIf
-  :EndFor
-∇
+          :If ~positional
+              :Select ind←⊃'Caption' 'Text' 'Style' 'Btns' 'Props'⍳1↑d
+              :Case 4 ⋄ Btns←{2<d←≡⍵:(⊃⍣(d-2))⍵ ⋄ (⊂⍣(2-d))⍵}{((,⊂'Btns')≡1↑⍵)↓⍵}d
+              :CaseList 1 2 3 ⋄ (Caption Text Style)←(d[2]@ind)Caption Text Style
+              :Case 5 ⋄ Props←1↓d
+              :Else ⋄ ('Invalid argument: ',,⍕d)⎕SIGNAL 11
+              :EndSelect
+          :EndIf
+      :EndFor
+    ∇
 
-∇ r←Run;ind;html;head;btns;body;msgStyle;renderer;tab
-  :Access public
-  Clicked←¯1 ⍝ default if form is closed without clicking a button
-  :If 5<ind←'msg' 'info' 'warn' 'error' 'query'⍳msgStyle←(819⌶)⊆Style
-      ('Invalid style: ',,⍕Style)⎕SIGNAL 11
-  :EndIf
-  :If 0∊⍴Btns
-      Btns←(⌈0.5×ind)⊃(,⊆'OK')('OK' 'Cancel')('Yes' 'No')
-  :EndIf
-  head←'title'Enc Caption
-  head,←'style'Enc MsgBoxCSS
-  head,←'style'(Enc⍣(~0∊⍴CSS)) CSS
-  head←'head'Enc head
-  tab←''
-  :If ind≠1 ⍝ everything but 'msg' gets a glyph
-      tab,←('td onclick="resize()" class="glyph ',(⊃msgStyle),'"')Enc ind⊃' i!!?'
-  :EndIf
-  tab←'tr'Enc tab,'td class="msgText"'Enc Text
-  tab←'table class="content"'Enc tab,'tr'Enc((ind≠1)/'td'Enc''),'td class="buttons"'Enc'form action=""'Enc∊(⍳≢Btns){('button id="btn',(⍕⍺),'" name="btn" value="',(⍕⍺),'"')Enc ⍵}¨Btns
-  body←⊃Enc/'div id="outer" class="outer"' 'div class="inner"'tab
-  body←'body' Enc body,'script' Enc 'document.getElementById("btn1").focus();'
-  renderer←⎕NEW'HTMLRenderer'(('Size'Size)('Coord'Coord),Props)
-  renderer.HTML←head,body
-  renderer.onHTTPRequest←'mbCallback'
-  renderer.Wait
-  r←Clicked
-∇
+    ∇ make2(arg1 arg2)
+      :Access public
+      :Implements constructor
+      make1 arg1 arg2
+    ∇
 
-∇ mbCallback args
+    ∇ make3(arg1 arg2 arg3)
+      :Access public
+      :Implements constructor
+      make1 arg1 arg2 arg3
+    ∇
+
+    ∇ make4(arg1 arg2 arg3 arg4)
+      :Access public
+      :Implements constructor
+      make1 arg1 arg2 arg3 arg4
+    ∇
+
+    ∇ make5(arg1 arg2 arg3 arg4 arg5)
+      :Access public
+      :Implements constructor
+      make1 arg1 arg2 arg3 arg4 arg5
+    ∇
+
+    ∇ r←Run;ind;html;head;btns;body;msgStyle;renderer;tab
+      :Access public
+      Clicked←¯1 ⍝ default if form is closed without clicking a button
+      :If 5<ind←'msg' 'info' 'warn' 'error' 'query'⍳msgStyle←(819⌶)⊆Style
+          ('Invalid style: ',,⍕Style)⎕SIGNAL 11
+      :EndIf
+      :If 0∊⍴Btns
+          Btns←(⌈0.5×ind)⊃(,⊆'OK')('OK' 'Cancel')('Yes' 'No')
+      :EndIf
+      head←'title'Enc Caption
+      head,←'style'Enc MsgBoxCSS
+      head,←'style'(Enc⍣(~0∊⍴CSS))CSS
+      head←'head'Enc head
+      tab←''
+      :If ind≠1 ⍝ everything but 'msg' gets a glyph
+          tab,←('td onclick="resize()" class="glyph ',(⊃msgStyle),'"')Enc ind⊃' i!!?'
+      :EndIf
+      tab←'tr'Enc tab,'td class="msgText"'Enc Text
+      tab←'table class="content"'Enc tab,'tr'Enc((ind≠1)/'td'Enc''),'td class="buttons"'Enc'form action=""'Enc∊(⍳≢Btns){('button id="btn',(⍕⍺),'" name="btn" value="',(⍕⍺),'"')Enc ⍵}¨Btns
+      body←⊃Enc/'div id="outer" class="outer"' 'div class="inner"'tab
+      body←'body'Enc body,'script'Enc'document.getElementById("btn1").focus();'
+      renderer←⎕NEW'HTMLRenderer'(('Size'Size)('Coord'Coord),Props)
+      renderer.HTML←head,body
+      renderer.onHTTPRequest←'mbCallback'
+      renderer.Wait
+      r←Clicked
+    ∇
+
+    ∇ mbCallback args
     ⍝ MsgBox callback function
     ⍝ when a button is clicked, the callback URI will have btn= following by the button index
-  Clicked←⊃Clicked,⍨⊃(//)⎕VFI{⍵↓⍨3+⍸'btn='⍷⍵}8⊃args
-  ⎕NQ(1⊃args)'Close' ⍝ queue "Close" event
-∇
+      Clicked←⊃Clicked,⍨⊃(//)⎕VFI{⍵↓⍨3+⍸'btn='⍷⍵}8⊃args
+      ⎕NQ(1⊃args)'Close' ⍝ queue "Close" event
+    ∇
 
-∇ r←MsgBoxCSS
+    ∇ r←MsgBoxCSS
     ⍝ This is the CSS for MsgBox
-    ⍝ You can either modify it to suit your needs or use the CSS property to inject your own CSS 
- 
-  r←ScriptFollows
+    ⍝ You can either modify it to suit your needs or use the CSS property to inject your own CSS
+     
+      r←ScriptFollows
 ⍝ .info,.query{
 ⍝   color:blue;
 ⍝   border-color:blue;
@@ -231,76 +255,76 @@
 ⍝ .APL{
 ⍝   font-family:APL385 Unicode;
 ⍝   }
-∇
+    ∇
 
-∇ r←tag Enc content
-  :Access public shared
+    ∇ r←tag Enc content
+      :Access public shared
     ⍝ Enclose content in an HTML tag (optionally with attributes)
     ⍝ 'div class="foo" enc 'Hello!'  >>  <div class="foo">Hello!</div>
-  r←tag{'<',⍺,'>',⍵,'</',(⍺↑⍨¯1+⍺⍳' '),'>'}UnicodeToHTML content ⍝ enclose an HTML element
-∇
+      r←tag{'<',⍺,'>',⍵,'</',(⍺↑⍨¯1+⍺⍳' '),'>'}UnicodeToHTML content ⍝ enclose an HTML element
+    ∇
 
-dtlb←{⍵{((∨\⍵)∧⌽∨\⌽⍵)/⍺}' '≠⍵}           ⍝ delete leading and trailing blanks
+    dtlb←{⍵{((∨\⍵)∧⌽∨\⌽⍵)/⍺}' '≠⍵}           ⍝ delete leading and trailing blanks
 
-∇ r←ScriptFollows;lines;pgm;from
+    ∇ r←ScriptFollows;lines;pgm;from
      ⍝ Treat following commented lines in caller as a script, lines beginning with ⍝⍝ are stripped out
-  :If 0∊⍴lines←(from←⎕IO⊃⎕RSI).⎕NR pgm←2⊃⎕SI
-      lines←↓from.(180⌶)pgm
-  :EndIf
-  r←∊{⍵/⍨'⍝'≠⊃¨⍵}{1↓¨⍵/⍨∧\'⍝'=⊃¨⍵}dtlb¨(1+2⊃⎕LC)↓lines
-∇
+      :If 0∊⍴lines←(from←⎕IO⊃⎕RSI).⎕NR pgm←2⊃⎕SI
+          lines←↓from.(180⌶)pgm
+      :EndIf
+      r←∊{⍵/⍨'⍝'≠⊃¨⍵}{1↓¨⍵/⍨∧\'⍝'=⊃¨⍵}dtlb¨(1+2⊃⎕LC)↓lines
+    ∇
 
 
-∇ r←UnicodeToHTML txt;u;ucs
-  :Access public shared
+    ∇ r←UnicodeToHTML txt;u;ucs
+      :Access public shared
 ⍝ converts chars ⎕UCS >127 to HTML safe format
-  r←,⎕FMT txt
-  u←127<ucs←⎕UCS r
-  (u/r)←(~∘' ')¨↓'G<&#ZZZ9;>'⎕FMT u/ucs
-  r←∊r
-∇
+      r←,⎕FMT txt
+      u←127<ucs←⎕UCS r
+      (u/r)←(~∘' ')¨↓'G<&#ZZZ9;>'⎕FMT u/ucs
+      r←∊r
+    ∇
 
-:Section Documentation Utilities
+    :Section Documentation Utilities
     ⍝ these are generic utilities used for documentation
 
-∇ docn←ExtractDocumentationSections what;⎕IO;box;CR;sections;eis;matches
+    ∇ docn←ExtractDocumentationSections what;⎕IO;box;CR;sections;eis;matches
     ⍝ internal utility function
-  ⎕IO←1
-  eis←{(,∘⊂∘,⍣(1=≡,⍵))⍵}
-  CR←⎕UCS 13
-  box←{{⍵{⎕AV[(1,⍵,1)/223 226 222],CR,⎕AV[231],⍺,⎕AV[231],CR,⎕AV[(1,⍵,1)/224 226 221]}⍴⍵}(⍵~CR),' '}
-  docn←1↓⎕SRC ⎕THIS
-  docn←1↓¨docn/⍨∧\'⍝'=⊃¨docn ⍝ keep all contiguous comments
-  docn←docn/⍨'⍝'≠⊃¨docn     ⍝ remove any lines beginning with ⍝⍝
-  sections←{∨/'::'⍷⍵}¨docn
-  :If ~0∊⍴what
-      matches←∨⌿∨/¨(eis(819⌶what))∘.⍷(819⌶)sections/docn
-      (sections docn)←((+\sections)∊matches/⍳≢matches)∘/¨sections docn
-  :EndIf
-  (sections/docn)←box¨sections/docn
-  docn←∊docn,¨CR
-∇
+      ⎕IO←1
+      eis←{(,∘⊂∘,⍣(1=≡,⍵))⍵}
+      CR←⎕UCS 13
+      box←{{⍵{⎕AV[(1,⍵,1)/223 226 222],CR,⎕AV[231],⍺,⎕AV[231],CR,⎕AV[(1,⍵,1)/224 226 221]}⍴⍵}(⍵~CR),' '}
+      docn←1↓⎕SRC ⎕THIS
+      docn←1↓¨docn/⍨∧\'⍝'=⊃¨docn ⍝ keep all contiguous comments
+      docn←docn/⍨'⍝'≠⊃¨docn     ⍝ remove any lines beginning with ⍝⍝
+      sections←{∨/'::'⍷⍵}¨docn
+      :If ~0∊⍴what
+          matches←∨⌿∨/¨(eis(819⌶what))∘.⍷(819⌶)sections/docn
+          (sections docn)←((+\sections)∊matches/⍳≢matches)∘/¨sections docn
+      :EndIf
+      (sections/docn)←box¨sections/docn
+      docn←∊docn,¨CR
+    ∇
 
-∇ r←Documentation
+    ∇ r←Documentation
     ⍝ return full documentation
-  :Access public shared
-  r←ExtractDocumentationSections''
-∇
+      :Access public shared
+      r←ExtractDocumentationSections''
+    ∇
 
-∇ r←Describe
+    ∇ r←Describe
     ⍝ return description only
-  :Access public shared
-  r←ExtractDocumentationSections'Description::'
-∇
+      :Access public shared
+      r←ExtractDocumentationSections'Description::'
+    ∇
 
-∇ r←ShowDoc what
+    ∇ r←ShowDoc what
     ⍝ return documentation sections that contain what in their title
     ⍝ what can be a character scalar, vector, or vector of vectors
-  :Access public shared
-  r←ExtractDocumentationSections what
-∇
+      :Access public shared
+      r←ExtractDocumentationSections what
+    ∇
 
-:EndSection
+    :EndSection
 
 :EndClass
 ⍝)(!Describe!!0 0 0 0 0 0 0!0
