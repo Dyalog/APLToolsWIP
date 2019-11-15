@@ -278,6 +278,10 @@
       :EndIf
     ∇
 
+    ∇ (rc msg)←Ping
+      :Access public
+      (rc msg)←Do'noop'
+    ∇
 
     ∇ (rc msg)←Reset
       :Access public
