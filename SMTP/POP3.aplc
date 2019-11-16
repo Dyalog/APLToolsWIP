@@ -51,7 +51,7 @@
       :If ⊃Connected ⋄ Do'QUIT' ⋄ :EndIf
     ∇
 
-    ∇ (rc msg)←Connect;r;uid;dom;cert;APOP
+    ∇ (rc msg)←Connect;r;uid;dom;cert;APOP;body
       :Access public
       (rc msg)←¯1 ''
       :If 0∊⍴Server ⋄ →Exit⊣msg←'Server not defined' ⋄ :EndIf
@@ -65,7 +65,7 @@
       :If 0=≢Password ⋄ →Exit⊣msg←'Empty Password' ⋄ :EndIf
      
       :If 0∊⍴LDRC
-      :OrIf {6::1 ⋄ 0⊣LDRC.Describe'.'}''
+      :OrIf {0::1 ⋄ 0⊣LDRC.Describe'.'}''
           (rc msg)←Init CongaRootName
       :EndIf
      
@@ -77,19 +77,18 @@
      
       :Select ⊃r←LDRC.Clt(''Server Port'text' 10000000,cert)
       :Case 0
-          _clt←2⊃r                   ⍝ Conga client name
-          :If 0=⊃(rc msg)←Do''       ⍝ retrieve the server ready message
-              msg↓⍨←¯2×CRLF≡¯2↑msg   ⍝ drop off any trailing CRLF
+          _clt←2⊃r                    ⍝ Conga client name
+          :If 0=⊃(rc msg body)←1 Do'' ⍝ retrieve the server ready message
               ⍝ APOP is a more secure authentication method.
               ⍝ If the POP3 server supports APOP, it will return a unique key as a part of the server ready message
               :If UseAPOP∧~0∊⍴APOP←'+OK POP3 server ready '{⍺≡(≢⍺)↑⍵:(≢⍺)↓⍵ ⋄ ''}msg ⍝ does server support APOP?
-                  :If 0≠⊃(rc msg)←Do'APOP ',Userid,' ',MD5.Hash APOP,Password ⍝ successful APOP login?
+                  :If 0≠⊃(rc msg body)←Do'APOP ',Userid,' ',MD5.Hash APOP,Password ⍝ successful APOP login?
                       {}LDRC.Close _clt
                       _clt←''
                   :EndIf
               :Else ⍝ If APOP isn't supported, or spe failed, try "standard" authentication
-                  :If 0≠⊃(rc msg)←Do'USER ',Userid
-                  :OrIf 0≠⊃(rc msg)←Do'PASS ',Password
+                  :If 0≠⊃(rc msg body)←Do'USER ',Userid
+                  :OrIf 0≠⊃(rc msg body)←Do'PASS ',Password
                       {}LDRC.Close _clt
                       _clt←''
                   :EndIf
@@ -107,14 +106,15 @@
      Exit:
     ∇
 
-    ∇ r←Do cmd;cnt;rc;c
+    ∇ (rc msg body)←{logon}Do cmd;hasCmd;r;cnt;c
       :Access public
       →go
     ⍝ Send a command to a POP3 server and retrieve answer
     ⍝ cmd: POP3 command or empty vector
     ⍝      If cmd is an empty vector, the function returns a pending answer from the server
-    ⍝ r    [1] 0 if OK or ¯1 if error
-    ⍝      [2] status message or data depending on the command
+    ⍝ rc    [1] 0 if OK or ¯1 if error
+    ⍝ msg   [2] status message (if any, '' otherwise)
+    ⍝ body  [3] body of the message (if any, '' otherwise)
     ⍝
     ⍝ Valid commands are:
     ⍝ Name Parameter    Description & return codes (S=success, E=error)
@@ -138,44 +138,54 @@
     ⍝       An intermittant NOOP is advisable to keep the session alive.
     ⍝ see https://tools.ietf.org/html/rfc1939
      go:
+      :If 0=⎕NC'logon' ⋄ logon←0 ⋄ :EndIf
       :If ⊃c←Connected                     ⍝ if we're connected
-          :If ~empty cmd
-              :If 0≠⊃rc←LDRC.Send Clt(cmd,CRLF)
-                  →Exit⊣r←'-ERR Conga error: ',,⍕2↑rc
+          :If hasCmd←~empty cmd
+              :If 0≠⊃c←LDRC.Send Clt(cmd,CRLF)
+                  →Exit⊣r←'-ERR Conga error: ',,⍕2↑c
               :EndIf
           :EndIf
           cnt←0
      Try:
-          :Select ⊃rc←LDRC.Wait Clt
+          :Select ⊃c←LDRC.Wait Clt
           :Case 0
-              r←(¯2××≢cmd)↓4⊃rc             ⍝ grab the data, drop off trailing CRLF if cmd was non-empty
+              r←4⊃c             ⍝ grab the data, drop off trailing CRLF if cmd was non-empty
           :Case 100                         ⍝ timeout, try up to 3 times
               cnt+←1
               →Try if 3>cnt
               r←'-ERR Conga timeout'
           :Else
-              r←'-ERR Conga error: ',,⍕2↑rc
+              r←'-ERR Conga error: ',,⍕2↑c
           :EndSelect
       :Else                              ⍝ if the socket does not exist
           r←'-ERR POP3 ',2⊃c
       :EndIf
      Exit:
-      r←(-'-'=⊃r)r                       ⍝ check for error and return
+      rc←0 ⋄ msg←body←''
+      :If '-ERR '≡5↑r  ⍝ error messages will be a single line
+          (rc msg)←¯1(r↓⍨¯2×CRLF≡¯2↑r)
+      :Else
+          :If (hasCmd∨logon)∧{(⊂4↑⍵)∊'+OK '('+OK',⎕UCS 13)}r ⍝ if there was a command...
+              (msg body)←r splitAfter CRLF ⍝ ...split after the first CRLF (if any)
+          :Else
+              body←r
+          :EndIf
+      :EndIf
     ∇
 
-    ∇ r←ReadBuffered;rc;msg;i;h;mask
+    ∇ r←ReadBuffered body;rc;msg;i;h;mask
       :Access public
       ⍝ read buffered response
       ⍝ r is [1] return code and [2] either the data read or error msg if [1]≠0
       r←''
-      (rc msg)←Do''
+      rc←0
       :While rc=0
-          r,←msg
+          r,←body
           :If (CRLF,'.',CRLF)≡¯5↑r
               r←¯5↓r
               :Leave
           :Else
-              (rc msg)←Do''
+              (rc msg body)←Do''
           :EndIf
       :EndWhile
       :If rc=0
@@ -189,7 +199,7 @@
       r←⎕NS''
       r.headers←parseHeaders headers
       :If 'multipart/'≡lc 10↑ct←r.headers getHeader'content-type'
-          boundary←'boundary="'splitAfter ct
+          boundary←ct splitAfter'boundary="'
           boundary←¯1↓2⊃boundary ⍝ drop off traling "
           bodyparts←('--',boundary){⍵⊆⍨(⊢⍱≠\)⍺{⍵∨(1-≢⍺)⌽⍵}⍺⍷⍵}body
           r.preamble←2↓1⊃bodyparts
@@ -206,44 +216,44 @@
 
     :section Public_API
 
-    ∇ (rc msg)←List;n;details;r;d
+    ∇ (rc msg)←List;n;details;r;d;body;b
       :Access public
     ⍝ r [1] return code (0=success)
     ⍝   [2] if successful - n×2 [;1] message number [;2] size in bytes; otherwise the error message [;3] UIDL (if available)
-      :If 0=⊃(rc msg)←Do'list'
+      :If 0=⊃(rc msg body)←Do'list'
           n←toNum 2⊃split msg ⍝ number of messages
-          :If 0=⊃(rc msg)←ReadBuffered
+          :If 0=⊃(rc msg)←ReadBuffered body
               msg←n↑↑toNum¨splitOnCRLF msg
-              :If 0=⊃Do'uidl'
-              :AndIf 0=⊃(r d)←ReadBuffered
+              :If 0=⊃(r d b)←Do'uidl'
+              :AndIf 0=⊃(r d)←ReadBuffered b
                   msg,←2∘⊃∘split¨n↑splitOnCRLF d
               :EndIf
           :EndIf
       :EndIf
     ∇
 
-    ∇ (rc msg)←Stat
+    ∇ (rc msg)←Stat;body
       :Access public
     ⍝ r [1] return code (0=success)
     ⍝   [2] if successful - 2-element vector of [1] #msgs [2] #octets; otherwise the error message
-      :If 0=⊃(rc msg)←Do'stat'
+      :If 0=⊃(rc msg body)←Do'stat'
           msg←⊃∘toNum¨1↓split msg ⍝ number of messages/bytes
       :EndIf
     ∇
 
-    ∇ (rc msg)←RawMessage n;size;i;h;mask
+    ∇ (rc msg)←RawMessage n;size;i;h;mask;body
       :Access public
     ⍝ n is the message number
     ⍝ r [1] return code
     ⍝   [2] raw message (headers, body, attachments) (or error message if [1]≠0)
-      :If 0=⊃(rc msg)←Do'list ',⍕n
+      :If 0=⊃(rc msg body)←Do'list ',⍕n
           size←toNum 3⊃split msg
           :If size>MessageSizeLimit
               rc←¯1 ⋄ msg←'-ERR message size (',(⍕size),') exceeds MessageSizeLimit (',(⍕MessageSizeLimit),')'
               →0
           :EndIf
-          :If 0=⊃(rc msg)←Do'retr ',⍕n
-          :AndIf 0=⊃(rc msg)←ReadBuffered
+          :If 0=⊃(rc msg body)←Do'retr ',⍕n
+          :AndIf 0=⊃(rc msg)←ReadBuffered body
               :If ~0∊⍴i←⍸(CRLF,'..')⍷msg
                   mask←(≢msg)⍴1
                   mask[i+2]←0
@@ -265,34 +275,34 @@
       :EndIf
     ∇
 
-    ∇ (rc msg)←Delete n
+    ∇ (rc msg)←Delete n;body
       :Access public
-      (rc msg)←Do'dele ',⍕n
+      (rc msg body)←Do'dele ',⍕n
     ∇
 
-    ∇ (rc msg)←Headers n;wrapped;i
+    ∇ (rc msg)←Headers n;wrapped;i;body
       :Access public
-      :If 0=⊃(rc msg)←Do'top ',(⍕n),' 0'
-      :AndIf 0=⊃(rc msg)←ReadBuffered
+      :If 0=⊃(rc msg body)←Do'top ',(⍕n),' 0'
+      :AndIf 0=⊃(rc msg)←ReadBuffered body
           msg←parseHeaders msg
       :EndIf
     ∇
 
-    ∇ (rc msg)←Ping
+    ∇ (rc msg)←Ping;body
       :Access public
-      (rc msg)←Do'noop'
+      (rc msg body)←Do'noop'
     ∇
 
-    ∇ (rc msg)←Reset
+    ∇ (rc msg)←Reset;body
       :Access public
-      (rc msg)←Do'rset'
+      (rc msg body)←Do'rset'
     ∇
 
-    ∇ (rc msg)←Done
+    ∇ (rc msg)←Done;body
       :Access public
     ⍝ issue the POP3 quit command which will delete any messages flagged for deletion
     ⍝ and then close the connection
-      (rc msg)←Do'quit'
+      (rc msg body)←Do'quit'
     ∇
 
     ∇ (rc msg)←Logoff;r
@@ -322,7 +332,7 @@
     splitOnCRLF←{2↓¨CRLF(⍷⊂⊢)(2×CRLF≡2↑⍵)↓CRLF,⍵}
     lc←0∘(819⌶)
     toNum←{⊃(//)⎕VFI ⍵}
-    splitAfter←{∧/m←~<\⍺⍷⍵:'' ⋄ ⍵⊆⍨(≢⍵)↑((¯1+≢⍺)⍴1),m}
+    splitAfter←{(0 (¯1+≢⍵))↓¨2↑(⍺⊆⍨~<\⍵⍷⍺),⊂''}
     getHeader←{(⍺[;2],⊂'')⊃⍨(lc¨⍺[;1])⍳⊆lc ⍵}
 
     ∇ r←parseHeaders r;wrapped;i
@@ -366,6 +376,67 @@
     ∇
 
     :endsection
+
+    :section base64
+
+      base64←{⎕IO ⎕ML←0 1             ⍝ Base64 encoding and decoding as used in MIME.
+     
+          chars←'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+          bits←{,⍉(⍺⍴2)⊤⍵}                   ⍝ encode each element of ⍵ in ⍺ bits,
+                                       ⍝   and catenate them all together
+          part←{((⍴⍵)⍴⍺↑1)⊂⍵}                ⍝ partition ⍵ into chunks of length ⍺
+     
+          0=2|⎕DR ⍵:2∘⊥∘(8∘↑)¨8 part{(-8|⍴⍵)↓⍵}6 bits{(⍵≠64)/⍵}chars⍳⍵
+                                       ⍝ decode a string into octets
+     
+          four←{                             ⍝ use 4 characters to encode either
+              8=⍴⍵:'=='∇ ⍵,0 0 0 0           ⍝   1,
+              16=⍴⍵:'='∇ ⍵,0 0               ⍝   2
+              chars[2∘⊥¨6 part ⍵],⍺          ⍝   or 3 octets of input
+          }
+          cats←⊃∘(,/)∘((⊂'')∘,)              ⍝ catenate zero or more strings
+          cats''∘four¨24 part 8 bits ⍵
+      }
+
+
+    ∇ r←{encoding}base64decode data
+    ⍝ decodes base64-encoded data
+    ⍝ optional encoding is used when the content-type charset is specified (needs to be a valid left argument to ⎕UCS)
+    ⍝
+    ⍝ examples:
+    ⍝       ⎕UCS base64decode 'UE9QMyB0ZXN0'
+    ⍝ POP3 test
+    ⍝       'UTF-8' base64decode 'K+KMv8O34omi' ⍝ Content-Type:text/html; charset=utf-8
+    ⍝ +⌿÷≢
+     
+      :Access public shared
+      :If 0=⎕NC'encoding'
+          r←⎕UCS base64 data
+      :Else
+          r←encoding ⎕UCS base64 data
+      :EndIf
+    ∇
+
+    ∇ r←{encoding}base64encode data
+    ⍝ base64-encodes data
+    ⍝ optional encoding is used as appropriate for the data being encoded (needs to be a valid left argument to ⎕UCS)
+    ⍝
+    ⍝ examples:
+    ⍝       base64encode 'POP3 test'
+    ⍝ UE9QMyB0ZXN0
+    ⍝       'UTF-8' base64encode '+⌿÷≢'
+    ⍝ K+KMv8O34omi
+     
+      :Access public shared
+      :If 0=⎕NC'encoding'
+          r←base64 ⎕UCS data
+      :Else
+          r←base64 encoding ⎕UCS data
+      :EndIf
+    ∇
+
+    :endsection
+
 
     :section Conga
     ∇ (rc msg)←Init rootname;ref;root;nc;class;dyalog;n;ns;congaCopied
