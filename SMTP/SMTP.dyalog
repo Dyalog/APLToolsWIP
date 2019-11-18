@@ -523,7 +523,7 @@
           r←⎕UCS 13 10
         ∇
 
-        ∇ r←{len}chunk content;breaks;mask
+        ∇ r←{len}chunk content;breaks;mask;stuff
           :Access public shared
         ⍝ Convert content into a vector with embedded cr/lf plus dot-stuffing
         ⍝ len : the maximum line length, excluding cr/lf line ends. Defaults to 72,
@@ -538,6 +538,8 @@
         ⍝               To prevent this, every line that starts with a dot get's
         ⍝               preceeded with a second dot, which will be removed by the
         ⍝               recipients mail client. See pop3_unstuff, the reverse function.
+         
+          stuff←{'.'=⊃⍵:'.',⍵ ⋄ ⍵}
          
           :If 900⌶⍬ ⋄ len←72 ⋄ :EndIf    ⍝ default line length, if not given
           :If 2>|≡content ⍝ simple array? otherwise, treat it as a vector of vectors
@@ -560,12 +562,12 @@
           :EndIf
          
           content←{⍵↓⍨-⊥⍨' '=⍵}¨content ⍝ delete trailing blanks
-          content←((⊂'..')@{⍵≡¨⊂,'.'})content ⍝ dot-stuff (double single dots)
+          content←stuff¨content ⍝ dot-stuff (double leading dot)
          
           :If ∨/mask←len<≢¨content  ⍝ any lines longer than length?
               :If 1=≢content ⍝ single chunk
                   content←{((≢⍵)⍴len↑1)⊂⍵}⊃content
-                  content←((⊂'..')@{⍵≡¨⊂,'.'})content ⍝ dot-stuff
+                  (1↓content)←stuff¨1↓content
               :Else
                   content←({⊂len∘chunk ⍵}@{mask})content
               :EndIf
