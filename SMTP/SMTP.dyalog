@@ -8,7 +8,7 @@
     (⎕IO ⎕ML)←1
 
     :field public Server←''  ⍝ server address
-    :field public Port←⍬     ⍝ server port (default depends on whether running secure 587/25 or 465)
+    :field public Port←⍬     ⍝ server port (default depends on whether running 587 or 465 (secure))
     :field public From←''    ⍝ default from address for new messages
     :field public Userid←''  ⍝ userid for authentication (defaults to From)
     :field public Domain←''  ⍝ fully qualified domain name for EHLO command
@@ -174,9 +174,9 @@
       :Access public
       (rc msg)←¯1 ''
       :If 0∊⍴Server ⋄ →Exit⊣msg←'Server not defined' ⋄ :EndIf
-      
-      :if 0∊⍴Port
-
+     
+      :If 0∊⍴Port ⋄ Port←(1+Secure)⊃587 465 ⋄ :EndIf  ⍝ if port not specified, select default based on Secure
+     
       Port←⊃Port
       :If ~Port∊⍳65535 ⋄ →Exit⊣msg←'Invalid Port' ⋄ :EndIf
      
@@ -197,7 +197,7 @@
           :If 0∊⍴LDRC.X509Cert.LDRC ⋄ LDRC.X509Cert.LDRC←LDRC ⋄ :EndIf
           cert←⊂'X509'(⎕NEW LDRC.X509Cert)
       :EndIf
-
+     
      
       :Select ⊃r←LDRC.Clt(''Server Port'text' 2000000,cert)
       :Case 0
