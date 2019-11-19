@@ -241,11 +241,14 @@
       :EndIf
     ∇
 
-    ∇ (rc msg)←RawMessage n;size;i;h;mask;body
+    ∇ (rc msg)←{dot}RawMessage n;size;i;h;mask;body
       :Access public
     ⍝ n is the message number
+    ⍝ dot is an optional flag indicating whether to remove dot-stuffing (periods inserted at the beginning of lines)
+    ⍝     default is 1 (remove), set to 0 to leave dot-stuffing in place
     ⍝ r [1] return code
     ⍝   [2] raw message (headers, body, attachments) (or error message if [1]≠0)
+      :If 0=⎕NC'dot' ⋄ dot←1 ⋄ :EndIf
       :If 0=⊃(rc msg body)←Do'list ',⍕n
           size←toNum 3⊃split msg
           :If size>MessageSizeLimit
@@ -254,7 +257,7 @@
           :EndIf
           :If 0=⊃(rc msg body)←Do'retr ',⍕n
           :AndIf 0=⊃(rc msg)←ReadBuffered body
-              :If ~0∊⍴i←⍸(CRLF,'..')⍷msg
+              :If dot∧~0∊⍴i←⍸(CRLF,'..')⍷msg
                   mask←(≢msg)⍴1
                   mask[i+2]←0
                   msg/⍨←mask
