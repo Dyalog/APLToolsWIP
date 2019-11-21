@@ -61,10 +61,12 @@
     okay←{0=⊃⍺.(rc msg log)←{3↑⍵,(≢⍵)↓¯99 '' ''},⊆⍵}
     empty←0∘∊⍴
     lc←0∘(819⌶)
+    splitOn←{⍵{(≢⍺)↓¨⍵⊂⍨⍺⍷⍵}⍵,⍺} ⍝ e.g. response splitOn CRLF
 
     ∇ r←CRLF
       r←⎕UCS 13 10
     ∇
+
 
     ∇ (rc msg)←Connected;r;state
       :Access public
@@ -183,7 +185,7 @@
       :If 0∊⍴uid←Userid ⋄ uid←From ⋄ :EndIf
       :If 0∊⍴dom←Domain
           dom←Message.extractAddr uid
-          dom←⌽(∧\'@'≠⌽dom)/dom
+          dom←(⌽∧\'@'≠⌽dom)/dom
       :EndIf
      
       :If 0∊⍴dom ⋄ →Exit⊣msg←'Domain not defined' ⋄ :EndIf
@@ -203,7 +205,7 @@
       :Case 0
           _clt←2⊃r                   ⍝ Conga client name
           :If 0=⊃(rc msg)←Do''       ⍝ retrieve the server response
-              (rc msg)←Do'EHLO ',dom ⍝ log on user domain
+              (rc msg)←EHLO dom ⍝ log on user domain
               _EHLOResponse←msg
           :Else
               {}LDRC.Close _clt
@@ -216,6 +218,21 @@
           msg←'Conga error: ',,⍕⊃r
       :EndSelect
      Exit:
+    ∇
+
+    ∇ (rc msg)←EHLO domain;resp;m
+      :Access public
+    ⍝ Some SMTP servers (gmail in particular) break up the response to EHLO into multiple messages
+      :If 0=⊃(rc msg)←Do'EHLO ',domain
+          resp←msg splitOn CRLF
+          :If '250 '≢4↑⊃⊢/resp  ⍝ this makes the assumption that the EHLO response is in 2 parts only
+              :If 0=⊃(rc m)←Do''
+                  msg,←m
+              :Else
+                  msg←m
+              :EndIf
+          :EndIf
+      :EndIf
     ∇
 
     ∇ (rc msg)←Logon;uid;email;rc;dom;elho
