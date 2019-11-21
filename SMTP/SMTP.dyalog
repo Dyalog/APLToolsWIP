@@ -128,7 +128,7 @@
       r.(From XMailer ReplyTo Org)←r.(From XMailer ReplyTo Org){0∊⍴⍺:⍵ ⋄ ⍺}¨From XMailer ReplyTo Org
     ∇
 
-    ∇ (rc msg log)←Send mail;logIt;message;text
+    ∇ (rc msg log)←Send mail;logIt;message;text;rec
       :Access public
     ⍝ mail is one of:
     ⍝ ∘ an instance of Message
@@ -148,7 +148,7 @@
           →Exit⊣msg←'Invalid argument'
       :EndSelect
      
-      →Err if 0≠⊃logIt(rc msg text)←message.Compose
+      →Exit if 0≠⊃logIt(rc msg text)←message.Compose
      
       :If ~⊃Connected
           →Exit if 0≠⊃logIt(rc msg)←Connect     ⍝ connect to SMTP server
@@ -160,8 +160,8 @@
      
       →Exit if 0≠⊃logIt(rc msg)←Ping ⍝ ping the server to make sure it's still up
      
-      →Err if 0≠⊃logIt(rc msg)←Do'MAIL FROM: ',message.(extractAddr From)
-      :For rec :In message.(extractAddr¨Recipients)
+      →Err if 0≠⊃logIt(rc msg)←Do'MAIL FROM: ',message.(normalizeAddr extractAddr From)
+      :For rec :In message.(normalizeAddr∘extractAddr¨Recipients)
           {}logIt Do'RCPT TO: ',rec
       :EndFor
       →Err if 0≠⊃logIt(rc msg)←Do'DATA'
@@ -191,6 +191,7 @@
       :If 0∊⍴dom ⋄ →Exit⊣msg←'Domain not defined' ⋄ :EndIf
      
       :If 0∊⍴LDRC
+      :OrIf {0::1 ⋄ 0≠⊃LDRC.Describe'.'}''
           (rc msg)←Init CongaRootName
       :EndIf
      
