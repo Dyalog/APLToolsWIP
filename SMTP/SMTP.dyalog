@@ -150,7 +150,7 @@
      
       →Err if 0≠⊃logIt(rc msg text)←message.Compose
      
-      :If ~Connected
+      :If ~⊃Connected
           →Exit if 0≠⊃logIt(rc msg)←Connect     ⍝ connect to SMTP server
       :EndIf
      
