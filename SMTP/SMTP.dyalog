@@ -106,7 +106,7 @@
       :Select ⎕NC⊂'args'
       :Case 2.1 ⍝ variable
           (Server Port Userid Password From ReplyTo Secure)←(Server Port Userid Password From ReplyTo Secure){(≢⍺)↑⍵,(≢⍵)↓⍺},⊆args
-      :Case 9,1 ⍝ namespace
+      :Case 9.1 ⍝ namespace
           (Server Port Userid Password From ReplyTo Secure)←args{6::⍎⍵ ⋄ ⍺⍎⍵}¨'Server' 'Port' 'Userid' 'Password' 'From' 'ReplyTo' 'Secure'
       :Else
           ⎕←'*** invalid constructor argument'
@@ -169,6 +169,19 @@
       →Exit
      Err:
       logIt(rc msg)←Do'RSET'
+     Exit:
+    ∇
+
+    ∇ (rc msg)←{crlf}Xmit data;tmp
+      :Access public
+    ⍝ transmit data without waiting for a response
+    ⍝ {crlf} is a Boolean (default=0) indicating whether to append CRLF to data
+    ⍝ After receiving a "DATA" comment, the SMTP server does not send a response until it receives CRLF,'.',CRLF
+    ⍝ so, the typical use of Xmit would be to send the headers and content of the message and ending with a Do CRLF,'.'
+      :If 0=⎕NC'crlf' ⋄ crlf←0 ⋄ :EndIf
+      msg←'Sent'
+      →Exit if 0=rc←⊃tmp←LDRC.Send Clt data,crlf/CRLF
+      msg←1↓∊' ',¨⍕¨(tmp,'' '')[2 3]
      Exit:
     ∇
 

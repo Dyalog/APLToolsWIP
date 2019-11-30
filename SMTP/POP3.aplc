@@ -334,17 +334,59 @@
     splitFirst←{⍺←' '⋄ ⍵⊆⍨~<\⍺⍷⍵}
     splitOnCRLF←{2↓¨CRLF(⍷⊂⊢)(2×CRLF≡2↑⍵)↓CRLF,⍵}
     lc←0∘(819⌶)
+    uc←1∘(819⌶)
+    hex2char←{⎕IO←0 ⋄ ⎕UCS 16⊥'0123456789ABCDEF'⍳uc 2↑⍵}
     toNum←{⊃(//)⎕VFI ⍵}
     splitAfter←{(0 (¯1+≢⍵))↓¨2↑(⍺⊆⍨~<\⍵⍷⍺),⊂''}
     getHeader←{(⍺[;2],⊂'')⊃⍨(lc¨⍺[;1])⍳⊆lc ⍵}
 
     ∇ r←parseHeaders r;wrapped;i
+      :Access public shared
       r←splitOnCRLF r
       :If ~0∊⍴i←⍸wrapped←(⊃¨r)∊⎕UCS 32 9 ⍝ mark "wrapped" headers (begin with space or horizontal tab)
           r[i]←{' ',⍵↓⍨+/∧\⍵∊⎕UCS 32 9}¨r[i]
           r←∊¨(~wrapped)⊂r
       :EndIf
       r←↑dlb¨¨':'splitFirst¨r
+      r[;2]←parseHeaderValue¨r[;2]
+    ∇
+
+    ∇ value←parseHeaderValue value;v;encWords;mask;encWord;m;text;encoding;charset;n
+⍝ parse header value based on https://tools.ietf.org/html/rfc2047
+⍝ n.b. - we do not attempt to parse all character sets
+⍝ n.b. - the implementation for
+     
+      :If ~0∊⍴encWords←('=\?.*\?.\?.*\?='⎕S ⎕NS⍠('Greedy' 0)('Mode' 'D'))value
+          v←value
+          v[∊1↓¨encWords.(Offsets+⍳Lengths)]←⊂''
+          :For encWord :In encWords
+              :If 3≠≢m←'?'(≠⊆⊢)2↓¯2↓encWord.Match ⍝ drop off =? and ?=
+                  :Leave
+              :EndIf
+              (charset encoding text)←m
+     
+              :Select lc encoding
+              :Case ,'b' ⍝ base64
+                  text←base64decode text
+              :Case ,'q' ⍝ quoted-printable
+                  text←(1+'='=text)⊆text
+                  text←∊('='=⊣/¨text){({(hex2char 2↑1↓⍵),3↓⍵}⍣⍺)⍵}¨text
+                  text←(' ',text)[('_',text)⍳text]
+              :Else
+                  →Exit ⍝ not an encoding we know how to deal with, just return the header value
+              :EndSelect
+     
+              :If 'utf-8'≡lc charset
+                  text←'UTF-8'⎕UCS ⎕UCS text
+              :EndIf
+              v[1+encWord.Offsets]←⊂text
+          :EndFor
+          mask←(n←≢v)⍴0
+          mask[(⍳n)∩1,∊1+encWords.(Offsets∘.+0,Lengths)]←1
+          v←mask⊂v
+          value←∊v/⍨~∧/¨v∊¨⊂⎕UCS 9 13 10 32
+      :EndIf
+     Exit:
     ∇
 
     ∇ r←CRLF
