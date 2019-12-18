@@ -1,4 +1,4 @@
-﻿ TestTests;ctrls;tests;look4;dir;CRLF;rep;ih;txt;h;t;eol;base;file;d;sub;z2;lc;dirC;dirE;dirT;examples;zt;ze;z1t;z1e;c;split;repE;c1;src;e;fld;f;pf;LF;noc1;fwslash;docn;j;uses;z
+﻿ TestTests;ctrls;tests;look4;dir;CRLF;rep;ih;txt;h;eol;base;file;d;sub;z2;lc;dirC;dirE;dirT;examples;zt;ze;z1t;z1e;c;split;repE;c1;src;e;fld;f;pf;LF;noc1;fwslash;docn;j;uses;z;z∆;ex∆;ex∆∆
 
  CRLF←⎕UCS 13 10
  LF←⎕UCS 10
@@ -23,18 +23,29 @@
  look4←ctrls[;1]∘.,'' 'Simple' 'Advanced'
 
  tests←{2⊃⎕NPARTS ⍵}¨⊃0(⎕NINFO⍠('Recurse' 1)('Wildcard' 1))dirT,'*.dyalog'
- examples←{2⊃⎕NPARTS ⍵}¨⊃0(⎕NINFO⍠('Recurse' 1)('Wildcard' 1))dirE,'*.mipage'
+ examples←{2⊃⎕NPARTS ⍵}¨e←⊃0(⎕NINFO⍠('Recurse' 1)('Wildcard' 1))dirE,'*.mipage'
+ ex∆∆←(≢e)⍴⊂''
+ :For f :In e
+     cnt←1⊃⎕NGET f
+     ex∆∆[e⍳⊂f]←⊂' '#.Strings.split #.Strings.deb⊃('⍝\sControl::\s*((\s*[^\s]*)*)'⎕S'\1')cnt
+ :EndFor
 
- zt←look4∊tests
- ze←look4∊examples
-
+ zt←(0(819⌶)look4)∊0(819⌶)tests
+ ze←(0(819⌶)look4)∊0(819⌶)examples
 
  z1e←~∨/ze
  rep,←CRLF,' <h2>',(⍕+/z1e),' controls without matching Simple/Advanced-pages in examples-folders ',(fwslash dirE),'</h2>',CRLF
+ rep,←'<i>If controls are used in other samples, their names will be shown nextz to the relevant control)</i>',CRLF
  :For sub :In ∪z1e/ctrls[;2]
      z2←z1e∧ctrls[;2]≡¨⊂sub
      rep,←'  <h3>',sub,'/</h3>',CRLF,'   <ol>',CRLF
-     rep,←∊{'    <li>',⍵,'</li>',CRLF}¨z2/ctrls[;1]
+     :For j :In ⍸z2
+         rep,←∊'    <li>',(j⊃ctrls[;1])
+         :If ∨/z∆←(⊂⊂sub,'.',1⊃ctrls[j;])∊¨ex∆∆
+             rep,←' (',(¯2↓∊examples[⍸z∆],¨⊂', '),')'
+         :EndIf
+         rep,←'</li>',CRLF
+     :EndFor
      rep,←'   </ol>',CRLF
  :EndFor
 
@@ -55,7 +66,8 @@
      c←{(0<≢¨⍵)/⍵}{(⍵⍳'.')↓⍵}¨' 'split⊃c  ⍝ remove _Folder and .
      src←('^⍝\sControl::(.*)$'⎕R'')src     ⍝ remove if from source
      repE←''
-     uses←{⍵[⍋⍵]}∪('Add _\.([^ \(\)\'',]*)'⎕S'\1')src
+     uses←{⍵[⍋⍵]}∪('(?:Add|New) #?\.?_\.([^ \(\)\'',]*)'⎕S'\1')src
+     uses←uses~#._html.⎕NL-9  ⍝ remove simple HTML-Controls from list of used controls
      :If 0<≢c
      :AndIf ∨/z←~c∊uses
          repE,←∊{'    <li>Claims to test "',⍵,'", but references to this control were not found in the source</li>',CRLF}¨z/c
