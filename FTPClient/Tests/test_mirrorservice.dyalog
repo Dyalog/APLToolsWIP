@@ -3,12 +3,14 @@
 ⎕←'Test started!'
             NL←⎕UCS 13 10 ⋄ CR←1⊃NL
 
-            (host user pass)←'ftp.mirrorservice.org' 'anonymous' 'testing'
+            (host user pass)←'ftp.mirrorservice.org' 'anonymous' ''
             path←∊(folder sub file)←'pub/' 'FreeBSD/' 'README.TXT'
 
             :Trap 0
                 z←⎕NEW #.FtpClient(host user pass)     ⍝ Create a new object
             :Else
+            ⎕dm 
+            ⎕dmx 
                 r←'Unable to connect to ',host ⋄ →0
             :EndTrap
 
