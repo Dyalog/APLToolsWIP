@@ -63,6 +63,12 @@
     lc←0∘(819⌶)
     splitOn←{⍵{(≢⍺)↓¨⍵⊂⍨⍺⍷⍵}⍵,⍺} ⍝ e.g. response splitOn CRLF
 
+    ∇ r←Config
+    ⍝ returns current service configuration
+      :Access public
+      r←↑{⍵(⍎⍵)}¨⎕THIS⍎'⎕NL ¯2.2 ¯2.3'
+    ∇
+
     ∇ r←CRLF
       r←⎕UCS 13 10
     ∇
@@ -686,6 +692,12 @@
           :Else
               rc←1⊃⎕SH'date -R' ⍝ unix - call date command
           :EndIf
+        ∇
+
+        ∇ r←Config
+        ⍝ returns current message configuration
+          :Access public
+          r←↑{⍵(⍎⍵)}¨⎕THIS⍎'⎕NL ¯2.2 ¯2.3'
         ∇
 
         beginsWith←{⍵≡(≢⍵)↑⍺}
