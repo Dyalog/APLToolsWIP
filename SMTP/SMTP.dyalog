@@ -107,6 +107,7 @@
     ∇ make1 args
       :Access public
       :Implements constructor
+      
       ⍝ args is either a vector with up to 6 elements: [1] server, [2] port, [3] userid, [4] password, [5] from, [6] replyto
       ⍝      or a namespace containing named elements
       :Select ⎕NC⊂'args'
@@ -265,7 +266,9 @@
       →Exit if 0∊⍴Password
       (rc msg)←¯1 ''
       elho←' '(,⍨)¨(~EHLOResponse∊CRLF)⊆EHLOResponse
-      :If 1≠≢('^250.AUTH.+LOGIN'⎕S'%')elho
+⍝    :If 1≠≢('^250.AUTH.+LOGIN'⎕S'%')elho
+⍝   ↑↑↑↑↑ Jan 9th, 2021, MBaas: AUTH PLAIN LOGIN
+     :If 1≠≢('^250.AUTH.(?:PLAIN.)?LOGIN'⎕S'%')elho   
           →Exit⊣msg←'AUTH LOGIN is the only authentication currently supported'
       :EndIf
       →Exit if 0≠⊃(rc msg)←Do'AUTH LOGIN'
@@ -361,7 +364,7 @@
     ⍝ 555 Only used by this program to indicate a special error condition
      go:
       :If ⊃c←Connected                   ⍝ if we're connected
-          :If ~empty cmd
+          :If ~empty cmd     
               :If 0≠⊃rc←LDRC.Send Clt(cmd,CRLF)
                   →Exit⊣r←'555 Conga error: ',,⍕2↑rc
               :EndIf
@@ -456,7 +459,7 @@
           text,←'X-Mailer'addHeader XMailer default'Dyalog SMTP Client 1.0'
           text,←'MIME-Version'addHeader'1.0'
           text,←∊CRLF∘(,⍨)¨('B'≠⊃¨Recipients)/Recipients ⍝ no headers for BCC recipients
-          text,←'Subject'addHeader Subj  ⍝ the message subject
+          text,←'Subject'addHeader '=?utf-8?B?', (base64enc  Subj),'?='  ⍝ the message subject
          
           :If haveAtts←~0∊⍴Attachments ⍝ Any attachments?
               boundary←'------',(∊⍕¨⎕TS),'.DyalogSMTP',CRLF ⍝ construct a boundary for attachments
@@ -630,7 +633,7 @@
 
         ∇ addr←normalizeAddr addr;a
           :Access public shared
-          :If 0<≢addr
+          :If 0<≢addr~' '  ⍝ MB: avoid issues when addr is a 0/ManyAddrs
               :If '<>'≢(⊣/,⊢/)a←extractAddr addr
                   addr←(addr/⍨~∨\⌽<\⌽a⍷addr),'<',a,'>'
               :EndIf
