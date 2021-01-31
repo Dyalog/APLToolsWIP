@@ -15,7 +15,7 @@
     :field public Org←''     ⍝ optional organization
     :field public ReplyTo←'' ⍝ optional reply to email address
     :field public Password←''⍝ optional password (if server requires authentication)
-    :field public XMailer←'Dyalog SMTP Client 1.0'  ⍝ client identifier
+    :field public XMailer←'Dyalog SMTP Client 1.1.0'  ⍝ client identifier
     :field public Secure←0   ⍝ indicates whether to use SSL/TLS, 0 = no, 1 = yes
     :field public CongaRootName←'SMTP'
 
@@ -26,6 +26,11 @@
     :field _loggedOn←0
     :field _EHLOResponse←''
     :field _conx←''         ⍝ Conga connection id
+
+    ∇ r←Version
+      :Access public shared
+      r←'SMTP' '1.1.0' '2021-01-31'
+    ∇
 
     :property EHLOResponse
     :access public
@@ -107,7 +112,7 @@
     ∇ make1 args
       :Access public
       :Implements constructor
-      
+     
       ⍝ args is either a vector with up to 6 elements: [1] server, [2] port, [3] userid, [4] password, [5] from, [6] replyto
       ⍝      or a namespace containing named elements
       :Select ⎕NC⊂'args'
@@ -256,9 +261,9 @@
       :EndIf
     ∇
 
-    ∇ (rc msg)←Logon;uid;email;rc;dom;elho
+    ∇ (rc msg)←Logon;uid;email;rc;dom;elho;auth
       :Access public
-    ⍝ Log on to an SMTP mail server optionally using AUTH LOGIN authentication if userid and password are non-empty
+    ⍝ Log on to an SMTP mail server optionally using AUTH LOGIN or AUTH PLAIN authentication if userid and password are non-empty
     ⍝  Other authentication types may be added in the future
     ⍝  If no password is set, then authentication is not done
     ⍝
@@ -266,14 +271,19 @@
       →Exit if 0∊⍴Password
       (rc msg)←¯1 ''
       elho←' '(,⍨)¨(~EHLOResponse∊CRLF)⊆EHLOResponse
-⍝    :If 1≠≢('^250.AUTH.+LOGIN'⎕S'%')elho
-⍝   ↑↑↑↑↑ Jan 9th, 2021, MBaas: AUTH PLAIN LOGIN
-     :If 1≠≢('^250.AUTH.(?:PLAIN.)?LOGIN'⎕S'%')elho   
-          →Exit⊣msg←'AUTH LOGIN is the only authentication currently supported'
+      :If 1≠≢auth←('^250.AUTH '⎕S'%')elho
+          →Exit⊣msg←'250-AUTH server response was not found or was not proper'
       :EndIf
+      auth←' '(≠⊆⊢)8↓⊃auth
+      →(auth∊'LOGIN' 'PLAIN')/LOGIN,PLAIN
+      →Exit⊣msg←'Only AUTH LOGIN or AUTH PLAIN are currently supported'
+     LOGIN:
       →Exit if 0≠⊃(rc msg)←Do'AUTH LOGIN'
       →Exit if 0≠⊃(rc msg)←Do Message.base64enc Userid
-      rc msg←Do Message.base64enc Password
+      →Exit⊣rc msg←Do Message.base64enc Password
+     PLAIN:
+      →Exit if 0≠⊃(rc msg)←Do'AUTH PLAIN'
+      →Exit⊣rc msg←Do Message.base64enc Userid,(⎕UCS 0),Userid,(⎕UCS 0),Password
      Exit:
     ∇
 
@@ -364,7 +374,7 @@
     ⍝ 555 Only used by this program to indicate a special error condition
      go:
       :If ⊃c←Connected                   ⍝ if we're connected
-          :If ~empty cmd     
+          :If ~empty cmd
               :If 0≠⊃rc←LDRC.Send Clt(cmd,CRLF)
                   →Exit⊣r←'555 Conga error: ',,⍕2↑rc
               :EndIf
@@ -450,16 +460,20 @@
           MakeRecipients
           :If 0∊⍴Recipients ⋄ →Exit⊣msg←'No recipients are defined' ⋄ :EndIf
          
-          addHeader←{⍵∧.=' ':'' ⋄ ⍺,': ',⍵,⎕UCS 13 10}
+          addHeader←{
+              ⍵∧.=' ':''
+              128∧.>⎕UCS ⍵:⍺,': ',⍵,⎕UCS 13 10
+              ⍺,': =?utf-8?B?',(base64enc ⍵),'?=',⎕UCS 13 10
+          }
          
           text←'Date'addHeader now    ⍝ Internet-conform date first
           text,←'From'addHeader normalizeAddr From  ⍝ the user's name & mail address
           text,←'Reply-To'addHeader normalizeAddr ReplyTo ⍝ the reply-to address
           text,←'Organization'addHeader Org
-          text,←'X-Mailer'addHeader XMailer default'Dyalog SMTP Client 1.0'
+          text,←'X-Mailer'addHeader XMailer
           text,←'MIME-Version'addHeader'1.0'
           text,←∊CRLF∘(,⍨)¨('B'≠⊃¨Recipients)/Recipients ⍝ no headers for BCC recipients
-          text,←'Subject'addHeader '=?utf-8?B?', (base64enc  Subj),'?='  ⍝ the message subject
+          text,←'Subject'addHeader Subj ⍝ the message subject
          
           :If haveAtts←~0∊⍴Attachments ⍝ Any attachments?
               boundary←'------',(∊⍕¨⎕TS),'.DyalogSMTP',CRLF ⍝ construct a boundary for attachments
