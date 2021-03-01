@@ -16,7 +16,7 @@
     :field public ReplyTo←'' ⍝ optional reply to email address
     :field public Password←''⍝ optional password (if server requires authentication)
     :field public XMailer←'Dyalog SMTP Client 1.1.0'  ⍝ client identifier
-    :field public Secure←0   ⍝ indicates whether to use SSL/TLS, 0 = no, 1 = yes
+    :field public Secure←¯1  ⍝ indicates whether to use SSL/TLS, 0 = no, 1 = yes, ¯1 = let port number determine
     :field public CongaRootName←'SMTP'
 
     :field public shared CongaRef←''   ⍝ user-supplied reference to location of Conga namespace
@@ -29,7 +29,7 @@
 
     ∇ r←Version
       :Access public shared
-      r←'SMTP' '1.1.0' '2021-01-31'
+      r←'SMTP' '1.2' '2021-02-21'
     ∇
 
     :property EHLOResponse
@@ -125,10 +125,13 @@
       :EndSelect
     ∇
 
-    ∇ unmake
+    ∇ unmake;base
       :Implements destructor
       :Trap 0
           {}Logoff
+          :If 0∊≢⎕INSTANCES base←⊃⊃⎕CLASS ⎕THIS
+              base.LDRC←''
+          :EndIf
       :EndTrap
     ∇
 
@@ -150,6 +153,10 @@
       log←''
       logIt←{⍵⊣log,←⍵[2]}
       (rc msg log)←¯1 '' ''
+     
+      :If 0∊⍴Userid ⋄ Userid←From ⋄ :EndIf
+     
+      →Exit if 0<≢msg←(0∊⍴From)/'No From address specified'
      
       :Select ⎕NC⊂'mail'
       :Case 9.2 ⍝ instance
@@ -202,9 +209,15 @@
       (rc msg)←¯1 ''
       :If 0∊⍴Server ⋄ →Exit⊣msg←'Server not defined' ⋄ :EndIf
      
-      :If 0∊⍴Port ⋄ Port←(1+Secure)⊃587 465 ⋄ :EndIf  ⍝ if port not specified, select default based on Secure
+      :If 0∊⍴Port ⍝ if port not specified, select default based on Secure
+          Port←(1+0⌈Secure)⊃587 465
+      :ElseIf ¯1=Secure ⍝ else if Secure is not set, set based on Port
+          Secure←Port∊465
+      :EndIf
      
+      Secure←0⌈Secure
       Port←⊃Port
+     
       :If ~Port∊⍳65535 ⋄ →Exit⊣msg←'Invalid Port' ⋄ :EndIf
      
       :If 0∊⍴uid←Userid ⋄ uid←From ⋄ :EndIf
@@ -285,14 +298,16 @@
       →Exit if 0≠⊃(rc msg)←Do'AUTH PLAIN'
       →Exit⊣rc msg←Do Message.base64enc Userid,(⎕UCS 0),Userid,(⎕UCS 0),Password
      Exit:
+      _loggedOn←0=rc
     ∇
 
     ∇ (rc msg)←Logoff
       :Access public
     ⍝ Log out from an SMTP mail server
       :If 0=⊃(rc msg)←Do'QUIT'
-          LDRC.Close Clt
+          rc←⊃LDRC.Close Clt
       :EndIf
+      _loggedOn←0
     ∇
 
     ∇ (rc msg)←Ping
@@ -553,7 +568,7 @@
         ∇
 
         ∇ r←ReadFile file
-          r←{0::'' ⋄ {(⎕NUNTIE ⍵)⊢⎕NREAD ⍵,(⎕DR' '),¯1}⍵ ⎕NTIE 0}file
+          r←{0::'' ⋄ ⊃⎕NGET ⍵}file
         ∇
 
         ∇ MakeRecipients;addrs
