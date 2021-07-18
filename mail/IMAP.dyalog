@@ -427,7 +427,7 @@
 
     ∇ LDRC←rootname ResolveCongaRef CongaRef;z;failed
     ⍝ CongaRef could be a charvec, reference to the Conga or DRC namespaces, or reference to an LDRC instance
-      :Access public shared  ⍝!!! testing only  - remove :Access after testing
+    ⍝ :Access public shared  ⍝!!! testing only  - remove :Access after testing
       LDRC←'' ⋄ failed←0
       :Select ⎕NC⊂'CongaRef' ⍝ what is it?
       :Case 9.1 ⍝ namespace?  e.g. CongaRef←DRC or Conga

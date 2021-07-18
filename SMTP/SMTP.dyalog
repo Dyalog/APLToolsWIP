@@ -7,29 +7,30 @@
 
     (⎕IO ⎕ML)←1
 
-    :field public Server←''  ⍝ server address
-    :field public Port←⍬     ⍝ server port (default depends on whether running 587 or 465 (secure))
-    :field public From←''    ⍝ default from address for new messages
-    :field public Userid←''  ⍝ userid for authentication (defaults to From)
-    :field public Domain←''  ⍝ fully qualified domain name for EHLO command
-    :field public Org←''     ⍝ optional organization
-    :field public ReplyTo←'' ⍝ optional reply to email address
-    :field public Password←''⍝ optional password (if server requires authentication)
+    :field public Server←''   ⍝ server address
+    :field public Port←⍬      ⍝ server port (default depends on whether running 587 or 465 (secure))
+    :field public From←''     ⍝ default from address for new messages
+    :field public Userid←''   ⍝ userid for authentication (defaults to From)
+    :field public Domain←''   ⍝ fully qualified domain name for EHLO command
+    :field public Org←''      ⍝ optional organization
+    :field public ReplyTo←''  ⍝ optional reply to email address
+    :field public Password←'' ⍝ optional password (if server requires authentication)
     :field public XMailer←'Dyalog SMTP Client 1.1.0'  ⍝ client identifier
-    :field public Secure←¯1  ⍝ indicates whether to use SSL/TLS, 0 = no, 1 = yes, ¯1 = let port number determine
+    :field public Secure←¯1   ⍝ indicates whether to use SSL/TLS, 0 = no, 1 = yes, ¯1 = let port number determine
+    :field public TLSFlags←32 ⍝ by default, accept server certificate without validating (see Conga User Guide Appendix C)
     :field public CongaRootName←'SMTP'
 
     :field public shared CongaRef←''   ⍝ user-supplied reference to location of Conga namespace
     :field public shared LDRC←''       ⍝ reference to Conga library instance after CongaRef has been resolved
 
-    :field _clt←''          ⍝ Conga client id
+    :field _clt←''             ⍝ Conga client id
     :field _loggedOn←0
     :field _EHLOResponse←''
-    :field _conx←''         ⍝ Conga connection id
+    :field _conx←''            ⍝ Conga connection id
 
     ∇ r←Version
       :Access public shared
-      r←'SMTP' '1.2' '2021-02-21'
+      r←'SMTP' '1.3' '2021-03-02'
     ∇
 
     :property EHLOResponse
@@ -56,7 +57,7 @@
     :property LoggedOn  ⍝ has authentication taken place?
     :access public
         ∇ r←get
-          r←_loggedOn∨0∊⍴Password
+          r←_loggedOn
         ∇
     :endproperty
 
@@ -71,7 +72,7 @@
     ∇ r←Config
     ⍝ returns current service configuration
       :Access public
-      r←↑{⍵(⍎⍵)}¨⎕THIS⍎'⎕NL ¯2.2 ¯2.3'
+      r←↑{⍵≡'Password':⍵'********' ⋄ ⍵(⍎⍵)}¨⎕THIS⍎'⎕NL ¯2.2 ¯2.3'
     ∇
 
     ∇ r←CRLF
@@ -117,9 +118,9 @@
       ⍝      or a namespace containing named elements
       :Select ⎕NC⊂'args'
       :Case 2.1 ⍝ variable
-          (Server Port Userid Password From ReplyTo Secure)←(Server Port Userid Password From ReplyTo Secure){(≢⍺)↑⍵,(≢⍵)↓⍺},⊆args
+          (Server Port From Password Userid ReplyTo Secure)←(Server Port From Password Userid ReplyTo Secure){(≢⍺)↑⍵,(≢⍵)↓⍺},⊆args
       :Case 9.1 ⍝ namespace
-          (Server Port Userid Password From ReplyTo Secure)←args{6::⍎⍵ ⋄ ⍺⍎⍵}¨'Server' 'Port' 'Userid' 'Password' 'From' 'ReplyTo' 'Secure'
+          (Server Port From Password Userid ReplyTo Secure)←args{6::⍎⍵ ⋄ ⍺⍎⍵}¨'Server' 'Port' 'From' 'Password' 'Userid' 'ReplyTo' 'Secure'
       :Else
           ⎕←'*** invalid constructor argument'
       :EndSelect
@@ -133,6 +134,11 @@
               base.LDRC←''
           :EndIf
       :EndTrap
+    ∇
+
+    ∇ r←NewClient args
+      :Access public shared
+      r←##.⎕NEW ⎕THIS args
     ∇
 
     ∇ r←NewMessage args
@@ -154,9 +160,12 @@
       logIt←{⍵⊣log,←⍵[2]}
       (rc msg log)←¯1 '' ''
      
+      ⍝ If one of Userid or From is specified, use it for both
       :If 0∊⍴Userid ⋄ Userid←From ⋄ :EndIf
+      :If 0∊⍴From ⋄ From←Userid ⋄ :EndIf
      
       →Exit if 0<≢msg←(0∊⍴From)/'No From address specified'
+      :If 0∊⍴mail.From ⋄ mail.From←From ⋄ :EndIf
      
       :Select ⎕NC⊂'mail'
       :Case 9.2 ⍝ instance
@@ -236,7 +245,7 @@
       cert←⍬
       :If Secure
           :If 0∊⍴LDRC.X509Cert.LDRC ⋄ LDRC.X509Cert.LDRC←LDRC ⋄ :EndIf
-          cert←⊂'X509'(⎕NEW LDRC.X509Cert)
+          cert←('X509'(⎕NEW LDRC.X509Cert))('SSLValidation'TLSFlags)
       :EndIf
      
      
@@ -254,7 +263,7 @@
           msg←'Conga timeout on connect'
       :Else ⍝ some Conga error occured
           _clt←''
-          msg←'Conga error: ',,⍕⊃r
+          msg←'Conga error: ',,⍕LDRC.Error⊃r
       :EndSelect
      Exit:
     ∇
@@ -283,20 +292,25 @@
       (rc msg)←0 'No logon performed, Password is not defined'
       →Exit if 0∊⍴Password
       (rc msg)←¯1 ''
+      :If ~⊃Connected
+          →Exit if 0≠⊃(rc msg)←Connect
+      :EndIf
       elho←' '(,⍨)¨(~EHLOResponse∊CRLF)⊆EHLOResponse
       :If 1≠≢auth←('^250.AUTH '⎕S'%')elho
           →Exit⊣msg←'250-AUTH server response was not found or was not proper'
       :EndIf
+      uid←(1+0∊⍴Userid)⊃Userid From
+      →Exit if~0∊⍴msg←(0∊⍴uid)/'No Userid or From address specified'
       auth←' '(≠⊆⊢)8↓⊃auth
       →(auth∊'LOGIN' 'PLAIN')/LOGIN,PLAIN
       →Exit⊣msg←'Only AUTH LOGIN or AUTH PLAIN are currently supported'
      LOGIN:
       →Exit if 0≠⊃(rc msg)←Do'AUTH LOGIN'
-      →Exit if 0≠⊃(rc msg)←Do Message.base64enc Userid
+      →Exit if 0≠⊃(rc msg)←Do Message.base64enc uid
       →Exit⊣rc msg←Do Message.base64enc Password
      PLAIN:
       →Exit if 0≠⊃(rc msg)←Do'AUTH PLAIN'
-      →Exit⊣rc msg←Do Message.base64enc Userid,(⎕UCS 0),Userid,(⎕UCS 0),Password
+      →Exit⊣rc msg←Do Message.base64enc uid,(⎕UCS 0),uid,(⎕UCS 0),Password
      Exit:
       _loggedOn←0=rc
     ∇
@@ -333,7 +347,7 @@
     ⍝ Valid commands are:
     ⍝ Name Parameter      Description & return codes (S=success, E=error)
     ⍝ ---- -------------  ------------------------------------------------
-    ⍝ HELO <domain>       Make yourself known to the server (use smtp_logon)
+    ⍝ HELO <domain>       Make yourself known to the server
     ⍝                      S: 250; E: 421 500 501 504
     ⍝ EHLO <domain>       Like HELO but request extended smtp services
     ⍝                      S: 250; E: 421 500 501 504
@@ -359,7 +373,7 @@
     ⍝                      S: 211 214; E: 421 500 501 502 504
     ⍝ NOOP                Returns success or error
     ⍝                      S: 250; E: 421 500
-    ⍝ QUIT                End the smtp session (use smtp_logoff)
+    ⍝ QUIT                End the smtp session
     ⍝                      S: 221; E: 500
     ⍝ TURN                Reverse the roles of client and server (DON't USE!)
     ⍝                      S: 250; E: 500 502 503
@@ -456,7 +470,9 @@
           :Implements constructor
           :Select ⎕NC⊂'args' ⍝ namespace?
           :Case 9.1
-              args{0≠⍺.⎕NC ⍵:⍎⍵,'←⍺⍎',⍵}¨'From' 'Subj' 'ReplyTo' 'Org' 'To' 'CC' 'BCC' 'MIMEType' 'Headers' 'Body' 'Attachments'
+              args{
+                  0≠⍺.⎕NC ⍵:⍎⍵,'←⍺⍎⍵'
+              }¨'From' 'Subj' 'ReplyTo' 'Org' 'To' 'CC' 'BCC' 'MIMEType' 'Headers' 'Body' 'Attachments'
           :Case 2.1 ⍝ 'To' 'Subj' 'Body' {'MIMEType'}
               args←,⊆args
               (To Subj Body MIMEType)←4↑args,(≢args)↓'' '' '' ''
@@ -517,18 +533,11 @@
           :If haveAtts
               text,←haveAtts/boundary
          
-              :Select |≡Attachments
-              :CaseList 0 1  ⍝ 'filename'
-                  atts←,⊂(⊂,Attachments),'' ''
-              :Case 2   ⍝ 'filename' 'mimetype' {'content'}
-                  atts←,⊂Attachments
-              :Case 3   ⍝ ('filename' 'mimetype')('filename' '
-                  atts←Attachments
-              :EndSelect
+              Attachments←FormatAttachments Attachments
          
-              :For i :In ⍳n←≢atts
-                  :If 0∊⍴att←Attachment i⊃atts
-                      msg←'Error processing attachment ',(⍕i),', file="',(1⊃i⊃atts),'"'
+              :For i :In ⍳n←≢Attachments
+                  :If 0∊⍴att←i Attachment i⊃Attachments
+                      msg←'Error processing attachment ',(⍕i),', file="',(1⊃i⊃Attachments),'"'
                       →Exit
                   :EndIf
                   text,←att
@@ -542,15 +551,31 @@
          Exit:
         ∇
 
+        ∇ Attach attachment
+          :Access public
+          Attachments←(FormatAttachments⍣(~0∊⍴Attachments)⊢Attachments),FormatAttachments attachment
+        ∇
+
+        ∇ atts←FormatAttachments atts
+          :Access public shared
+          :Select |≡atts
+          :CaseList 0 1  ⍝ 'filename'
+              atts←,⊂(⊂,atts),'' ''
+          :Case 2   ⍝ 'filename' 'mimetype' {'content'}
+              atts←,⊂atts
+          :Case 3   ⍝ ('filename' 'mimetype')('filename' '
+          :EndSelect
+        ∇
+
         ∇ r←Send
           :Access public
           r←Client.Send ⎕THIS
         ∇
 
-        ∇ r←Attachment arg;mime;content;file;name
+        ∇ r←i Attachment arg;mime;content;file;name
           (file mime content)←3↑(⊆arg),'' '' ''
           :If 0∊⍴file
-              name←,'4ZI2,<.>,ZI3'⎕FMT 1 5⍴2↓⎕TS  ⍝ make an arbitrary one
+              name←'Attachment-',(⍕i),,'<->,4ZI2,<.>,ZI3'⎕FMT 1 5⍴2↓⎕TS  ⍝ make an arbitrary one
           :Else
               name←∊¯2↑⎕NPARTS file←(7×'file://'≡7↑file)↓file
               :If 0∊⍴content ⍝ attempt to read content
@@ -568,7 +593,7 @@
         ∇
 
         ∇ r←ReadFile file
-          r←{0::'' ⋄ ⊃⎕NGET ⍵}file
+          r←{0::'' ⋄ {(⎕NUNTIE ⍵)⊢⎕NREAD ⍵,(⎕DR' '),¯1 0},⍵ ⎕NTIE 0}file
         ∇
 
         ∇ MakeRecipients;addrs
@@ -581,8 +606,12 @@
 
         ∇ list←type FormatList list
           :If ~0∊⍴list
-              :If 2=≢⍴list ⋄ list←dtb¨↓list ⋄ :EndIf
-              list←,⊆list
+              :If 2=≢⍴list ⍝ matrix of names?
+                  list←↓list
+              :Else
+                  list←list((~∊)⊆⊣)',;' ⍝ otherwise split on ; or ,
+              :EndIf
+              list←{⍵↓⍨-+/∧\' '=⌽⍵}¨list
               list←(type,': ')∘,¨normalizeAddr¨list
           :EndIf
         ∇
@@ -792,7 +821,7 @@
 
     ∇ LDRC←rootname ResolveCongaRef CongaRef;z;failed
     ⍝ CongaRef could be a charvec, reference to the Conga or DRC namespaces, or reference to an iConga instance
-      :Access public shared  ⍝!!! testing only  - remove :Access after testing
+    ⍝ :Access public shared  ⍝!!! testing only  - remove :Access after testing
       LDRC←'' ⋄ failed←0
       :Select ⎕NC⊂'CongaRef' ⍝ what is it?
       :Case 9.1 ⍝ namespace?  e.g. CongaRef←DRC or Conga
