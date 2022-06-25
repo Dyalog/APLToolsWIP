@@ -1,4 +1,4 @@
-﻿:Class SMTP
+:Class SMTP
 
 ⍝ Based on original work by Conrad Hoesle-Kienzlen in 1999
 ⍝ Updated by Morten Kromberg to use UTF-8 text, 2009
@@ -302,7 +302,8 @@
       uid←(1+0∊⍴Userid)⊃Userid From
       →Exit if~0∊⍴msg←(0∊⍴uid)/'No Userid or From address specified'
       auth←' '(≠⊆⊢)8↓⊃auth
-      →(auth∊'LOGIN' 'PLAIN')/LOGIN,PLAIN
+⍝      →(auth∊'LOGIN' 'PLAIN')/LOGIN,PLAIN
+      →(<\'LOGIN' 'PLAIN'∊auth)/LOGIN,PLAIN
       →Exit⊣msg←'Only AUTH LOGIN or AUTH PLAIN are currently supported'
      LOGIN:
       →Exit if 0≠⊃(rc msg)←Do'AUTH LOGIN'
