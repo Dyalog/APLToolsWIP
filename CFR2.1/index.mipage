@@ -1,0 +1,925 @@
+﻿:class index : ConfPage
+
+    :Field public ctlTimetable  ⍝ the "Conference Grid"
+    :Field public GridIndices   ⍝ to convert _GridCell into row/col-indices
+    :Field public gix   ⍝ indices of "valid" GridIndices (non-empty)
+    :Field public AOpts
+    :Field public POpts
+    :field public pckg
+    :field public packs
+    :field public pckid
+    :field public i_p
+    :Field private FormIsValid←0
+
+
+    getvat←{⍵-⍵÷1+⍺×0.01}   ⍝ vat {} price
+    novat←{⍵÷1+⍺×0.01}   ⍝ vat {} price
+    isUndefined←{6::1 ⋄ 0××≢⍎⍵}
+    ifUndefined←{6::⍺ ⋄ ⍎⍵}
+
+    bool2yn←{'NY'[1+⍵]}
+
+    ∇ R←MakeBindVars types;type;r
+⍝ types: I=Integer, C=Character
+⍝ optional length
+      :Access public
+      R←''
+      :For type :In ,types
+          R,←':<'
+          :Select 1↑,type
+          :Else ⋄ R,←1↑type
+          :EndSelect
+          R,←(1↓type),':,'
+      :EndFor
+      R←¯1↓R
+    ∇
+
+
+    ∇ Constructor
+      :Access public
+      :Implements Constructor
+      Countries←⌽#.Countries.List
+    ∇
+
+
+    ∇ {val}←{checks}getAndCheckField nam;msg;z;Z
+          ⍝ Auswerten von Feldinhalt des Felds mit id/name "nam"
+          ⍝ falls nicht validiert, wird in JSValMsg ein JS-Befehl zum Erzeugen der Fehlermeldung übergeben
+      val←Get nam
+      Z←1 ⋄ Msg←0 2⍴''   ⍝ Msg: (id of field)(error)
+      :If 2=⎕NC'checks'
+          :For check :In {w←',',⍵ ⋄ 1↓¨(w=',')⊂w}checks
+              :Select check
+              :Case 'required'
+                  z←×≢val ⋄ msg←'Field is mandatory'
+              :Case 'email'
+                  z←×≢('^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$'⎕S 0 1⍠'IC' 1)val
+                  msg←'Unknown format of email-address'
+                 ⍝ regex from http://www.regular-expressions.info/email.html
+              :EndSelect
+              Msg⍪←((~z),2)⍴nam((nam GetText nam),': ',msg)
+          :EndFor
+          :If ~Z∧←z
+              JSValidation←Msg
+              ⎕SIGNAL 501
+          :EndIf
+      :EndIf
+     
+    ∇
+
+    ∇ Compose;z;tmp;f;delegateInfo;div1;div2;packSel;cs;left;right;divTimetable;divCustomize;divItems;divSpcReq;divPayment;Obj;onload
+      :Access public
+      ⍝SubTit←Add _.h1
+      title←GetText'AppTitle'
+      onload←''
+      On'Optimizer_yes' 'DoSubmitIfValid'  ⍝ event handler for the optimizer (if user selects "yes", trigger validation & submit)
+      Add _.br  ⍝ body starts with a br - just for compatibility's sake (with main conf-page)
+      mpLink←('.btn'('#BOTTOM'Add _.div).Add _.p).Add _.a'' 'href="//www.dyalog.com/user-meetings/dyalog17.htm"'  ⍝ create empty and inject text later (when we're sure tat the page will be shown and is not redirecting in which case the text might be confusing...)
+      Body.Add _.noscript('.noscript'New _.div(GetText'noscript'))
+     
+      '.floatclear'Add _.div(GetText'AppIntro')
+      :If isUndefined'Countries'
+          ⍝Add _.p'Warning: your session has expired - pls. launch the page again in a new browser-window (do not refresh!)'
+          ⍝→0
+          ⍝ no need to let user reload - we can restart on our own ;-)
+          isPost←0
+          Countries←⌽#.Countries.List
+      :EndIf
+      :If isUndefined'confs' ⋄ confs←APIdo('GetConfs' 1) ⋄ :EndIf  ⍝ might happen if server is restarted while user has form elready open...
+     
+      f←'#regform'Add #._.Form ⋄ Add _.br ⍝ blank line after form
+      f.On'UpdateInvoice' 'UpdateInvoice'
+      :If isPost
+          :If (⊂'submit1')∊_Request.Data
+              confId←0 Get'conf_id'
+          :Else
+          ⍝ repeat validation - in case the AJAX-Call was circumvented by some hacker...
+              (isValid R)←ValidateForm 1
+              :If ~isValid
+                  onload,←R
+              :Else
+                  {}UpdateInvoice ⍝ make sure it's accurate (may not be tha case after optimizer is executed...)
+              ⍝ Store record in DB
+              ⍝ Preparing data
+                  YBanquet←bool2yn∨/TheItems.((∨/'Banquet'⍷Title)∧Picked)
+                  YDays←1↓bool2yn(∨⌿↑TheItems.(Picked∧AttDays)),∨/{∨/'TP'⍷⍵}¨TheItems.(Picked/Title) ⍝ needs to be generalized!
+                  YHotel←bool2yn∨⌿↑TheItems.(Picked∧HotelNights)
+                  rtTxt←GetText'lRoomType',⍕ATTENDANCE[1]   ⍝ textual desc of roomtype
+                  Notes←notes
+                  :If ATTENDANCE[1]∊2 3
+                      Notes←notes,((×≢notes)/'  '),GetText ATTENDANCE[2]⊃'lTwinRoom' 'lDoubleRoom'
+                  :Else
+                      SecondEmail←SecondName←''
+                  :EndIf
+                  smpTxt←'n/a'
+                  :If ATTENDANCE[1]=3
+                      smpTxt←ATTENDANCE[3]⊃'Dinner' 'AllMeals'
+                  :EndIf
+     
+                  (InvoiceAmount ConferenceGross Accommodation SpouseGross TotalGross)←+⌿1↓[2]Invoice
+                  (vatC vatA)←0.01×VATpct[1 2]  ⍝ VAT-Rates for Conference & Accommodation - transformed into a factor
+                  SpouseNet←SpouseGross  ⍝ {⍺÷1+⍵}vatC  ⍝ no EB for spouses!
+                  TotalNet←InvoiceAmount
+                  :If EarlyBirdActive
+                      ConferenceNet←ConferenceGross÷0.9
+                  :Else
+                      ConferenceNet←ConferenceGross
+                  :EndIf
+                  Accommodation_VAT←VATpct[2]getvat Accommodation+SpouseGross
+                  Conference_VAT←VATpct[1]getvat ConferenceGross
+                  Courses←¯1↓∊TheItems.({⍵,(0<≢⍵)/','}(3×Picked∧0<_SubSelectionOf)↑Title)
+                  TransactionId←MakeDyalogTransID
+                  YEarlyBird←bool2yn EarlyBirdActive
+     
+⍝ Status:
+⍝
+⍝    I (Invoiced) - this is "Pay Later"
+⍝    Y (Confirmed/Paid) - This is "Pay Now" and have successfully received the confirmation response from WorldPay
+⍝    C (Cancelled)
+⍝    N (Unconfirmed) - Maybe half-way through registration, haven't hit pay later, - may have hit pay now but not returned from WorldPay.
+     
+                  Status←'IN'['paylater' 'paynow'⍳⊂Get'submitvia']  ⍝ initialise status depending on button used for submitting
+     
+     
+⍝ ---- SQL Command with its variables and data-types
+                  types←'CCCCCCCCCCCCCC' ⍝14
+                  vars←'Status,YEarlyBird,YDays,YHotel,YBanquet,DelegateName,Company,Address,Town,Region,Postcode,Country,SecondName,SecondEmail,'
+                  sql←'INSERT INTO Bookings (Status,YEarlyBird,YDays,YHotel,YBanquet,Name,Company,Address,Town,Region,Postcode,CountryCode,SecondName,SecondEmail'
+     
+     
+                  types,←'CCCFFIFFFFF'
+                  vars,←'rtTxt,smpTxt,Notes,Conference_VAT,Accommodation_VAT,confId,InvoiceAmount,ConferenceGross,Accommodation,SpouseGross,SpouseNet'
+                  sql,←',RoomType,SpouseMealPlan,Notes,Conference_VAT,Accommodation_VAT,Conference_id,InvoiceAmount,ConferenceGross,Accomodation,SpouseGross,SpouseNet'
+     
+                  types,←'FFFCCC'
+                  vars,←',TotalGross,TotalNet,ConferenceNet,Courses,EMail,TransactionId'
+                  sql,←',TotalGross,TotalNet,ConferenceNet,Courses,EMail,TransactionId'
+     
+     
+      ⍝ --- final polish of SQL...
+                  vars←','#.Strings.split vars
+                  types←(vals←⍎¨vars){⍵='C':⍵,⍕1⌈≢⍺ ⋄ ⍵}¨types   ⍝ length of C-Fields...
+                  sql,←')  VALUES (',(MakeBindVars types),');'
+                  :Hold 'Database'
+                      c←#.SQL.Do'Confreg'sql vals
+                  :EndHold
+     
+                  vars,←⊂'_what' ⋄ vals,←⊂Get'submitvia'
+                  vars,←⊂'SelectedPackage' ⋄ vals,←⊂SelectedPackage
+                  vars,←⊂'CurrPrefix' ⋄ vals,←⊂CurrPrefix
+                  vars,←⊂'CurrSuffix' ⋄ vals,←⊂CurrSuffix
+                  vars,←⊂'TheItems' ⋄ vals,←⊂TheItems
+     
+                  z←TheItems.Picked
+                  ItemsAndCategories←''
+                  :For (k elems) :In ↓(z/TheItems._Type){⍺ ⍵}⌸z/TheItems.id
+                      ItemsAndCategories,←'<b>',(APIdo'GetItemType'k).Title,'</b><br>'
+                      ItemsAndCategories,←TheItems[TheItems.id⍳elems].Title,¨⊂'<br>'
+                  :EndFor
+     
+     
+     
+                  iConfDays←{¯2↓∊⍵,¨⊂', '}APIdo('FormatDays'(confId(0,¯1↓'Y'=YDays)))
+                  iHotelNights←{¯2↓∊⍵,¨⊂', '}APIdo('FormatDays'(confId(YHotel='Y')))
+     
+     
+                  vars,←⊂'ItemsAndCategories' ⋄ vals,←⊂ItemsAndCategories
+                  vars,←⊂'iConfDays' ⋄ vals,←⊂iConfDays
+                  vars,←⊂'iHotelNights' ⋄ vals,←⊂iHotelNights
+                  vars,←⊂'VATpct' ⋄ vals,←⊂VATpct
+     
+     
+                  _Request.Session.RegData←vars vals
+     
+                  _Request.Response.NoWrap←1
+                  ⍝Add'Redirecting to payment procesor...'
+     
+                  :If 'paynow'≡Get'submitvia'
+     
+     
+                      PARAMS←⎕NS''
+                      PARAMS.amount←(2⍕InvoiceAmount)~' '
+                      PARAMS.cartId←'Conf',⍕TransactionId
+                      PARAMS.currency←'EUR'
+                      :Trap 0
+                          PARAMS.desc←'Dyalog Usermeeting 2017' ⍝ default
+                          PARAMS.desc←(confIdx⊃confs.Title)
+                          :If ∨/'CUSTOM'⍷#.Strings.uc SelectedPackage.Title
+                              PARAMS.desc,←,' / Custom / ',⍕+/¯1↓YDays='Y'
+                              PARAMS.desc,←,' days, ',(⍕+/YHotel='Y'),' nights'
+                          :Else
+                              PARAMS.desc,←' / ',SelectedPackage.Title
+                          :EndIf
+                      :Else
+                          ⎕←⎕DM
+                      :EndTrap
+                      PARAMS.email←EMail
+                      PARAMS.instId←'283350'
+                      PARAMS.hideCurrency←'true'
+                      PARAMS.name←DelegateName
+                      PARAMS.address1←Address
+                      PARAMS.town←Town
+                      PARAMS.region←Region
+                      PARAMS.postcode←Postcode
+                      PARAMS.country←Country
+                      PARAMS.MC_callback←#.Boot.ms.Config.Application.('https://',OurDomain,'/',CallbackURL)
+                      PARAMS.MC_pack←⍕SelectedPackage.id
+                      PARAMS.MC_items←¯1↓∊(⍕¨∊TheItems.(Picked/id)),¨','
+                      :If 1=#.Strings.tonum #.Boot.ms.Config.Application.testMode
+                          PARAMS.testMode←'100'
+                      :EndIf
+     
+                      f←Add _.Form #.Boot.ms.Config.Application.PaymentURL
+                      :For n :In PARAMS.⎕NL-2
+                          f.Add _.input''('type=hidden name=',n,' value="',(PARAMS.⍎n),'"')
+                      :EndFor
+                      OnLoad←'$("form").submit();'
+                      →0
+                  :Else
+                      _Request.Session.RegData←_Request.Session.RegData,¨⊂¨('PaymentStatus')(GetText'sPayLater')
+                  :EndIf
+     
+                   ⍝ pay later
+     ⍝ show friendly confirmation-msg
+                  _Request.Redirect'thankyou'
+                  →0
+              :EndIf
+          :EndIf
+      :ElseIf isUndefined'confId'
+      :OrIf confId=0
+          :If 0=confId←0 Get'conf_id'
+              :If 1=≢confs    ⍝ only one conf open for registration
+                  confId←1⊃confs.id
+              :Else
+                  f.Add _.p'Please select the event you''d like to signup for'
+                  fc←'#conf_id'f.Add _.Chosen((↑confs.(Title(⍕id)))(,1))
+                  'width'fc.Set'200px'
+⍝                  fc.On'select' 'UpdatedSelection'
+                  '#submit1'f.Add _.SubmitButton'Submit'
+                  →0
+              :EndIf
+          :EndIf
+      :EndIf
+     
+      confIdx←confs.id⍳confId
+      mpLink.Content←'Main Page'
+      title←'Registration Page for ',confIdx⊃confs.Title
+     
+      :If isUndefined'EarlyBirdActive'
+          EarlyBirdActive←(2 ⎕NQ'.' 'DateToIDN'⎕TS)≤confIdx⊃confs.EarlyBirdEndsTS_IDN
+      :EndIf
+      :If ~isUndefined'TheItems.Picked' ⋄ TheItems.Picked←0 ⋄ :EndIf  ⍝ reset selections (mostly visible for workshops!)
+     
+      '#ConfTitle'f.Add _.h2'Registration for ',confIdx⊃confs.Title
+      VATpct←(confIdx⊃confs).(_VAT _AccommodationVAT)
+      Country←(SessionGet'Country'){⍵≡'DEFAULT':⍺ ⋄ ⍵}Country
+     
+      delegateInfo←New _.div
+      delegateInfo.Add(GetText'IdelegateInfo')
+      '#conf_id'f.Add _.Input'hidden'(⍕confId)
+      '#submitvia'f.Add _.Input'hidden'
+      :With tmp←(div1←New _.div).Add _.InputGrid
+          Inputs←New¨_.EditField _.EditField _.EditField _.EditField
+          Inputs.id←'DelegateName' 'EMail' 'Town' 'Postcode'
+          (⊂'required')Inputs.Set⊂'required'
+          ⍝'placeholder'(2⊃Inputs).Set'Enter a valid email address'
+          'type'(2⊃Inputs).Set'email'
+          Horizontal←0
+      :EndWith
+      tmp.Labels←GetText¨'DelegateName' 'EMail' 'Town' 'Postcode'
+      z←(Countries)(Countries[;2]⍳⊂Country)  ⍝ use a local variable to make this data accessible inside :With
+      :With tmp←(div2←New _.div).Add _.InputGrid
+          ⍝Inputs←New¨_.EditField _.EditField _.EditField _.Chosen
+          Inputs←New¨_.EditField _.EditField _.EditField _.Select
+          Inputs.id←'Company' 'Address' 'Region' 'Country'
+          Inputs[2  4].{⍵ Set ⍵}⊂'required'
+          Horizontal←0
+          (4⊃Inputs).(Options Selected)←z
+         ⍝ unfortunately HTML5-Validation "required" not applicable to Chosen and it does
+         ⍝ not have options for that. But the field will be valited in the callback
+         ⍝ as well as during post, so 2 more nets are waiting to catch any issues...!⌈
+      :EndWith
+      tmp.Labels←GetText¨'Company' 'Address' 'Region' 'Country'
+     
+      (delegateInfo.Add _.StackPanel(div1 div2)).Horizontal←1
+     
+      packSel←New _.div
+      packSel.Add(GetText'IpackSel')
+      :If EarlyBirdActive
+          '.earlybirdmsg'packSel.Add _.p(GetText'IEarlyBirdActive')
+      :EndIf
+     
+      AOpts←APIdo('BuildAccommodationOpts'confId)
+      cs←'#pckg'packSel.Add #.ChainedSelect  ⍝ not yet in MiServer, so it's included via Code-directory...
+      cs.Options←AOpts[;⍳3]
+      cs.Labels←{GetText'Lpckg',⍕⍵}¨⍳3
+      ⍝ and another handler after selecting roomtype:
+      Add _.Handler'#pckg_1' 'change' 'onSelectRoomtype'
+      Add _.Handler'#pckg_2' 'change' 'onSelectRoomtype'
+      Add _.Handler'#pckg_3' 'change' 'onSelectRoomtype'
+     
+      :With left←'#seconddata'New _.InputGrid
+          Inputs←New¨2⍴⊂_.EditField
+          Inputs.id←'SecondName' 'SecondEmail'
+          'required'(1⊃Inputs).Set'required'
+          'type'(2⊃Inputs).Set'email'
+      :EndWith
+      left.Labels←GetText¨'LSecPers' 'LSecEmail'
+      Add _.Style'#seconddata' 'width: 35em;'
+      right←New _.div
+      '.rtdetails2'right.Add _.span(GetText'DetRoomType2')
+      '.rtdetails3'right.Add _.span(GetText'DetRoomType3')
+⍝     'title'(1⊃left.Inputs).Set (GetText'DetRoomType2')
+⍝     'title'(2⊃left.Inputs).Set (GetText'DetRoomType3')
+⍝     ic←'style=color:blue;'New _.Icon'fa-info-circle'
+⍝     'data-jbox-title'ic.Set 'Info'
+⍝     'data-jbox-content'ic.Set (GetText'DetRoomType2')
+⍝     'class'ic.Set 'jboxTooltip'
+⍝     (1⊃left.Labels)←(1⊃left.Labels),' ',ic.Render
+⍝     'data-jbox-content'ic.Set (GetText'DetRoomType3')
+⍝     (2⊃left.Labels)←(2⊃left.Labels),' ',ic.Render
+     
+     ⍝('#seconda' '.hidden'packSel.Add _.StackPanel(left,right)).Horizontal←1
+      ('#second' '.hidden'packSel.Add _.StackPanel(right,left)).Horizontal←0
+     
+⍝      (dd←Add _.jBox).Selector←'.jboxTooltip'
+⍝      'getTitle'dd.Set'data-jbox-title'           ⍝ the following applies to all items with class="tooltip2", all set up with this one instance!
+⍝      'getContent'dd.Set'data-jbox-content'
+     
+     
+      ⍝ tmp←'#divPacksel' '.hidden'packSel.Add _.div
+      tmp←'#divPacksel' '.hidden'packSel.Add _.div
+      tmp.Add GetText'pSelPack'
+     
+      sl2←'#pSelPack'tmp.Add _.Select     ⍝ THE important Select!
+      h←Add _.Handler
+      h.Selector←'#pSelPack'
+      h.Events←'change'
+      h.Callback←'onSelectPackage'
+     
+      divTimetable←'#div3'New _.div
+      divTimetable.Add _.h2(GetText'YourTimetable')
+      divTimetable.Add _.p(GetText'PlsCheckAgnda')
+      
+      ConfGrid←APIdo('BuildConfGrid'confId)     
+      ctlTimetable←'#confgrid' '.RequirePackage'divTimetable.Add _.Table ConfGrid
+      ⍝ctlTimetable←'#confgrid'divTimetable.Add _.Table ConfGrid
+      ctlTimetable.MakeCellIds←1
+      ctlTimetable.MakeRowIds←1
+      ctlTimetable.CellAttr←{⍵≡'⍬':'class="UnusedCell"' ⋄ 'class="EmptyCell"'}¨ConfGrid
+      ctlTimetable.CellAttr[;1]←⊂''
+      ctlTimetable.CellAttr[1;]←⊂''
+      ctlTimetable.Data[1↓⍳1↑⍴ConfGrid;1↓⍳¯1↑⍴ConfGrid]←⊂''
+     
+      divCustomize←New _.div
+      divCustomize.Add(GetText'IdivCustomize')
+      divItems←'#divItems' '.RequirePackage'New _.div
+     
+     
+      divSpcReq←New _.div
+      divSpcReq.Add _.h3(GetText'AdivSpcReq')
+      divSpcReq.Add _.p(GetText'IdivSpcReq')
+      '#notes'(divSpcReq.Add _.div).Add _.textarea'' 'rows=6 cols=50 name=notes'
+     
+      ('#custpnl'divCustomize.Add _.StackPanel(divItems,divSpcReq)).Horizontal←0
+     
+     
+      '#forminvalid' '.hidden'f.Add _.Panel'' 'error' 'Please correct these problems:'
+     
+      divPayment←New _.div
+      ⍝divPayment.Add(GetText'IdivPayment')
+      divPayment.Add divTimetable
+      divPayment.Add _.h2(GetText'Payment')
+      (divPayment.Add _.div).Add _.b'Amount payable (includes ',(⍕VATpct[1]),'% VAT): '
+      '#total' '.numright'divPayment.Add _.input'' 'disabled=disabled'
+      divPayment.Add _.br
+     
+     
+     
+      ⍝ buttons disabled initially, if the form validates they will be enabled (UpdateInvoice)
+      '.SubmitIfValid' 'name=paylater  value=PayLater'divPayment.Add _.Button'Pay later' ⍝ disabled=disabled'
+      '.SubmitIfValid' 'name=paynow  value=PayNow'divPayment.Add _.Button'Pay now' ⍝ disabled=disabled'
+      h←divPayment.Add _.Handler
+      h.Callback←'SubmitValidForm'               ⍝ specify the callback function to run
+      h.Events←'click'                        ⍝ listen for the "click" event
+      h.Selector←'.SubmitIfValid'                  ⍝ on the input elements within the form with id "mtg"
+      h.ClientData←'' 'serialize'('#regform')
+     
+      ⍝ Add _.Script'$(function(){$(".RequirePackage").hide();});'
+      ⍝Obj←'#cfracc'f.Add _.ejAccordion(,⊂↑[0.5]((GetText'AdelegateInfo')delegateInfo.Render)((GetText'ApackSel')packSel.Render)((GetText'AdivCustomize')divCustomize.Render)((GetText'AdivSpcReq')divSpcReq.Render)((GetText'AdivPayment')divPayment.Render))
+     
+     
+      Obj←'#cfracc'f.Add _.ejAccordion(,⊂↑[0.5]((GetText'AdelegateInfo')delegateInfo.Render)((GetText'ApackSel')packSel.Render)((GetText'AdivCustomize')divCustomize.Render)((GetText'AdivPayment')divPayment.Render))
+      'enableMultipleOpen'Obj.Set _true
+      'heightAdjustMode'Obj.Set'Content'
+      'showRoundedCorner'Obj.Set _true
+      ⍝onload,←'Hide_ejAccSection("cfracc",3);Hide_ejAccSection("cfracc",4);'
+      OnLoad←onload
+      Add _.Script('.RequirePackage'_JSS.Hide'')
+     
+      'name=optpick_pack type=hidden'f.Add _.input
+      'name=optpick_items type=hidden'f.Add _.input
+     
+     
+     
+    ∇
+
+    ∇ R←onSelectRoomtype
+      :Access public
+      :If isUndefined'AOpts'
+          R←Execute Notice 3 'Your session expired - please refresh browser!' ⋄ →0
+      :EndIf
+      R←''
+      ATTENDANCE←3↑∊#.Strings.tonum¨'.'#.Strings.split,AOpts{4⊃⍺[⍺[;2]⍳⊂⍵;]}Get'pckg'
+     
+      R,←Execute'$("#total").val("N/A");'
+      ⍝R,←Execute'$("#spousegross").val("N/A");'
+      ⍝R,←Execute'$("#accomm").val("N/A");'
+      ⍝R,←Execute'$("#confgross").val("N/A");'
+      InvoiceAmount←0
+     
+      :If ATTENDANCE[1]∊2 3
+          R←Execute'#second'_JSS.Show''
+          R,←Execute('.rtdetails',⍕ATTENDANCE[1])_JSS.Show''
+          R,←Execute('.rtdetails',⍕2 3~ATTENDANCE[1])_JSS.Hide''  ⍝ hide the "other" text
+      :Else
+          R←Execute'#second'_JSS.Hide''
+      :EndIf
+      :If ATTENDANCE[1]>0
+          POpts←APIdo('BuildPackageOpts')(confId ATTENDANCE EarlyBirdActive)
+          R,←sl2.ReplaceOptions(POpts[;⍳2])⍬(POpts[;3])
+          :If ~isUndefined'TheItems.Picked' ⋄ TheItems.Picked←0 ⋄ :EndIf  ⍝ reset selections
+     
+          :If 1<≢POpts
+              R,←Execute'#divPacksel'_JSS.Show''
+              R,←Execute'.RequirePackage'_JSS.Hide''
+          :Else
+              R,←Execute'$("#pSelPack").val("',(2⊃POpts[1;]),'");' ⍝ select the single item...
+              :If ATTENDANCE[1]=4
+                  R,←Execute'#divPacksel'_JSS.Hide''
+                  R,←Execute'.RequirePackage'_JSS.Show''
+                  pck←1
+                  pckId←1⊃#.Strings.tonum 1↓2⊃POpts[1;]
+                  R,←onSelectPackage  ⍝ update customize section for Non-residentials
+              :EndIf
+          :EndIf
+      :Else
+          R,←Execute'#divPacksel'_JSS.Hide''
+      :EndIf
+      R,←UpdateInvoice
+     
+    ∇
+
+    ∇ R←onSelectPackage;js
+      :Access public
+      :If isUndefined'AOpts'
+          R←Execute(Notice 3 'Your session expired - please refresh browser!') ⋄ →0
+      :EndIf
+      js←''   ⍝ AddItem might add something to it...
+      VATpct←(confIdx⊃confs).(_VAT _AccommodationVAT)
+      (CurrPrefix CurrSuffix currnam)←(confIdx⊃confs).(CurrPrefix CurrSuffix CurrNam)
+      R←''
+      :If ATTENDANCE[1]∊⍳3
+          pckId←1⊃#.Strings.tonum 1↓Get'pSelPack' ⍝ scalar with id of selected package
+      :ElseIf ATTENDANCE[1]=4
+          pckId←1⊃#.Strings.tonum 1↓2⊃POpts[1;]
+      :Else
+          ⍝∘∘∘Should not happen!∘∘∘
+      :EndIf
+      ConfGrid←APIdo('SetConfGrid'(confId pckId ⍬))
+      GridIndices←,⊃∘.,/1↓¨⍳¨⍴ConfGrid   ⍝ indices of all cells (except 1st row and 1st column)
+            
+      ctlTimetable.CellAttr[GridIndices]←{'⍬'≡⍵:'class="UnusedCell"' ⋄ 0<1↑⍴⍵:'title="',⍵,'" class="BusyCell"' ⋄ 'class="EmptyCell"'}¨ConfGrid[GridIndices]
+      gix←(ConfGrid[GridIndices]≢¨⊂'⍬')/⍳⍴GridIndices 
+      :If ~isUndefined'TheItems.Picked'
+          lastPicks←∊TheItems.((Picked∨Included)/id)
+      :Else ⋄ lastPicks←⍳0
+      :EndIf
+     
+      itms←New _.div
+      TheItems←APIdo('GetOptionalItems'(pckId EarlyBirdActive ATTENDANCE))
+      TheItems.(Picked←Included)
+     
+      ⍝⎕←((~TheItems.Picked)∧TheItems.id∊lastPicks)/TheItems.Title
+      ⍝∘∘∘
+      TheItems.Picked∨←TheItems.id∊lastPicks
+      TheItems._PriceNoVat←VATpct[1]novat TheItems._Price
+      TheItems.ToRender←1
+      itms AddItems TheItems
+     
+      packs←jsonClone APIdo('Get' 'packages')
+      packs←(packs.id_conf=confId)⌿packs
+      packs.Gross←packs._Price
+      packs._Price←packs._Price×1-0.1×EarlyBirdActive
+      _Request.Session.packs←packs
+      i_p←packs.id⍳pckId
+     
+      SelectedPackage←i_p⊃packs  ⍝ might be used in thankyou.html
+     
+
+      R←'#confgrid'Replace ctlTimetable.Render
+      R,←Execute'$(".RequirePackage").show();'
+      R←R,'#divItems'Replace itms.Render
+     
+      InvoiceAmount←0
+      R,←Execute'$("#regform").trigger("UpdateInvoice");'
+     
+      :If ×≢js
+          R,←Execute js
+      :EndIf
+      ⍝ R,←Execute'hideUselessOptions();'  ⍝ removed from .js (rescued in TheBrain)
+      R,←Execute'Show_ejAccSection("cfracc",3);Show_ejAccSection("cfracc",4);'
+    ∇
+
+    ∇ prnt AddItem i;slct;cb
+      slct←'#cb_',⍕i.id
+      cb←slct(sp←prnt.Add _.span).Add _.CheckBox''(' ',i.Title)'right'
+      :If i.BelongsToObservedType
+          sp.class←cb.class←'observedType'⍝,⍕i._Type
+          'data-observedtype'cb.Set⍕i._Type
+          'data-observedtype'sp.Set⍕i._Type
+      :ElseIf ×≢i.nvOnlyIfTypeCount
+          sp.class←cb.class←∊{'reqType',(⍕⍵[1]),'_',⍕2⊃⍵}¨↓{(⌽2,0.5×⍴⍵)⍴⍵}i.nvOnlyIfTypeCount
+      :EndIf
+      i.MiControl←1↓slct ⋄ Add' '
+      :If ×≢i.Summary
+          (prnt.Add _.span(New _.ul'summary')).On'click' 0 ''('$("',((slct,'_det'),'.hidden'),'").toggle();')
+          z←'.tooltip'prnt.Add _.span(New _.Icon'fa-in_fo-circle')
+          'title'z.Set i.Summary
+          ((slct,'_det')'.hidden')prnt.Add _.div i.Summary
+      :Else
+          prnt.Add _.br
+      :EndIf
+      :If i.Included
+          'disabled'cb.Set'disabled' ⋄ 'checked'cb.Set'checked'
+          js,←'$("#sub_',1↓slct,'").show();'
+      :ElseIf i.Disabled
+          'disabled'cb.Set'disabled'
+      :Else
+          cb.On'click' 'UpdateInvoice' ''('$("#sub_',1↓slct,'").toggle();')
+      :EndIf
+      i.ToRender←0
+      :If 0<⍴i.nvMetaTypes ⋄ cb.class←cb.class,∊{' metatype',⍕⍵}¨i.nvMetaTypes ⋄ :EndIf
+    ∇
+
+    ∇ prnt AddItems xx;lastg;typeDiv;subDiv;i
+      lastg←¯999 ¯999  ⍝ remember id of last type/supertype
+      :If ×≢xx
+          :If 1=⍴∪xx._Type   ⍝ all items of the same type
+          :AndIf 0<1⊃xx._Type
+              ityp←APIdo('GetItemType'(1⊃xx)._Type)
+              :If 'M1'≡ityp.Attrs    ⍝ and the attributes are M1 (mandatory, pick one)
+         ⍝ we'll do a radiobutton-group
+                  typeDiv←('#radiogroup_',⍕(1⊃xx)._Type)prnt.Add _.div
+                  typeDiv.Add _.b ityp.Title ⋄ typeDiv.Add _.br
+                  :For i :In xx
+                      i.MiControl←'radio_',(⍕ityp.id),'_',⍕i.id
+                      r←typeDiv.Add _.input(' ',i.Title)('type=radio name=radio_',(⍕ityp.id),(i.Picked/' checked=checked'),' value=',i.MiControl,' required=required id=',i.MiControl)
+                      r.On'change' 'UpdateInvoice'
+                      typeDiv.Add' '
+                      :If ×≢i.Summary
+                          ⍝r←typeDiv.Add _.u'summary'
+                          typeDiv.Add'  ' ⍝ some space to separate the info...
+                          ⍝r.On'change' 0 ''('$("#',i.MiControl,'_det").toggle();')'' 0
+                          z←(i.MiControl,'_tt')typeDiv.Add _.span('style=color:blue;'New _.Icon'fa-info-circle')
+                          tip←typeDiv.Add _.jBox'Modal'
+                          tip.ScriptOptions←1 0 0  ⍝ control rendering of JS-Code...
+                          'attach'tip.Set'#',i.MiControl,'_tt'
+                          'closeOnEsc'tip.Set _true
+                          'closeOnClick'tip.Set _true
+                          'width'tip.Set 500
+                          'content'tip.Set⊂'$("#',i.MiControl,'_det").html()'
+                          'title'tip.Set i.Title
+                          typeDiv.Add _.br
+                          ((i.MiControl,'_det')'.hidden ItemSummary')typeDiv.Add _.div i.Summary
+                      :Else
+                          typeDiv.Add _.br
+                      :EndIf
+                      i.ToRender←0
+                  :EndFor
+              :EndIf
+          :Else
+              :For i :In xx
+
+                  :If i.ToRender   ⍝ if it has not yet been rendered (due to SubSelectionOf-Handling)
+                  :AndIf 0=i._SubSelectionOf
+                      :If i._Type≠lastg[1]
+                          lastg[1]←i._Type
+                          ityp←APIdo('GetItemType'i._Type)
+                          typeDiv←prnt.Add _.div
+                          typeDiv.Add _.b ityp.Title ⋄ typeDiv.Add _.br
+                      :EndIf
+                      typeDiv AddItem i
+                      :If i.id∊xx._SubSelectionOf
+                          subDiv←('#sub_cb_',⍕i.id)'.SubSelection'typeDiv.Add _.div
+                          subDiv.Set'style=display:none;'
+                          subItems←(xx._SubSelectionOf=i.id)/xx
+                          :For tp :In ∪subItems._Type
+                              subDiv AddItems(subItems._Type=tp)/subItems
+                          :EndFor
+                      :EndIf
+                  :EndIf
+              :EndFor
+          :EndIf
+      :EndIf
+    ∇
+
+    ∇ R←UpdateInvoice;IsValid;IdsInPackage
+      :Access public
+      R←''
+      :If isUndefined'AOpts'
+          Add _.p'Warning: your session has expired - pls. launch the page again in a new browser-window (do not refresh!)' ⋄ →0
+      :EndIf
+     
+      :If (0=≢Get'pSelPack')             ⍝ if no package selected
+      :OrIf ~(⊂Get'pSelPack')∊POpts[;2]  ⍝ or if selected package not in current list
+          :If ~isUndefined'TheItens.Picked' ⋄ TheItems.(Picked←Included←0) ⋄ :EndIf
+          Invoice←0 6⍴0
+          →ShowSums
+      :EndIf
+      :If ATTENDANCE[1]∊⍳3
+          pck←POpts[;2]⍳⊂Get'pSelPack'
+      :Else
+          pck←1
+      :EndIf
+      pckId←⍬⍴#.Strings.tonum 1↓∊POpts[pck;2]
+      i_p←packs.id⍳pckId
+      
+      Invoice←{((0<2⊃⍵),6)⍴⍵}{w←⍵ ⋄ w[3]-←w[4] ⋄ w[2 6]+←w[5] ⋄ w}(i_p⊃packs).(Title _Price _Price _PriceAccommodation),((1+ATTENDANCE[3])⊃(i_p⊃packs).(0,_PriceSpouseDinner,_PriceSpouseAllMeals)),(i_p⊃packs).Gross
+      price←2⊃2↑∊Invoice
+      i2p←APIdo('Get' 'i2p')
+      IdsInPackage←(i2p.id_package=pckId)/i2p.id_item
+      TheItems.Picked←(TheItems.id∊IdsInPackage)
+      lot←2⍴⊂⍬  ⍝ list of types we dealt with
+      lot[1]←⊂∪∊TheItems.(Picked/_Type,nvCostType)
+      lot[2]←⊂∪∊TheItems.(Picked/SuperType)
+      posn←'' ⋄ accomm←fee←pprc←spouse←gross←0
+      choices←TheItems.MiControl ⋄ radio←⍬
+      :For r :In {(⍵[;⍳6]∧.='radio_')/↓⍵}_PageData.⎕NL 2   ⍝ radio-selections only processed if "parent-checkbox" has enabled the options
+          r←_PageData⍎r
+          :If (⊂(TheItems.id⍳(TheItems.MiControl⍳⊂r)⊃TheItems._SubSelectionOf)⊃TheItems.MiControl)∊(_PageData.⎕NL-2),TheItems.(Included/MiControl)
+              radio,←⊂r
+          :EndIf
+      :EndFor
+      chosen←(choices∩radio,_PageData.⎕NL-2)~TheItems.MiControl[TheItems.id⍳IdsInPackage]   ⍝ replace names of radio-controls with their values before checking and remove items from package from _PageData (tricky, but can happend when swicthing from ConfOnlyPackage+SundayAcc to Conf+Workshop)
+      filledCells←(⍴ctlTimetable.Data)⍴0
+⍝      GridIndices←,⊃∘.,/1↓¨⍳¨⍴ConfGrid   ⍝ indices of all cells (except 1st row and 1st column)
+     
+      ctlTimetable.CellAttr[GridIndices[gix]]←⊂'class="EmptyCell"'
+      ctlTimetable.Data[GridIndices[gix]]←⊂''
+     
+      TheItems.Picked∨←TheItems.MiControl∊chosen
+⍝     ⎕←'===Picked:==='
+⍝      ⎕←↑TheItems.(Picked/Title
+      :For cb :In {('radio_'≢6↑¨⍵)/⍵}choices
+          i←(TheItems.MiControl⍳⊂cb)⊃TheItems
+          idx←GridIndices[i.nvGridCells]
+     
+          :If i.Picked
+          :AndIf ∧/i.nvGridCells>0
+         ⍝ :AndIf 0=1↑⍴1⊃,i._SubSelectionOf   ⍝ subitems (workshop-selection) may need improvement. for now just ignore them...
+              :If ×≢i.NeedsOneOf   ⍝ a radio-group!
+                  nx←TheItems.id⍳i.NeedsOneOf
+                  :For tp :In ∪TheItems[nx]._Type
+                      otp←APIdo('GetItemType'tp)
+                      idx←GridIndices[(TheItems[nx]._Type⍳tp)⊃TheItems[nx].nvGridCells]
+                      :If ∨/(TheItems[nx]._Type=tp)/TheItems[nx].Picked
+                          filledCells[idx]←1  ⍝ fill cells once only (else-branch should trigger plausi-msgs!)
+                          ctlTimetable.CellAttr[idx]←{⊂'title="',⍵,'" class="BusyCell"'}otp.Title,': ',∊(TheItems[nx].Picked∧TheItems[nx]._Type=tp)/TheItems[nx].Title
+                      :Else
+                          filledCells[idx]←1  ⍝ fill cells once only (else-branch should trigger plausi-msgs!)
+                          ctlTimetable.CellAttr[idx]←{⊂'title="Please select an item for ',⍵,'" class="ErrCell"'}otp.Title
+                          ctlTimetable.Data[idx]←⊂'Select!'
+                          FormIsValid←0
+                      :EndIf
+                  :EndFor
+              :Else
+                  :If ~∨/filledCells[idx]
+                      filledCells[idx]←1
+                      ctlTimetable.CellAttr[idx]←{×≢⍴⍵~' ':'title="',⍵,'" class="BusyCell"' ⋄ 'class="EmptyCell"'}¨(⍴idx)⍴#.HtmlElement.eis i.(Picked/Title)
+                  :EndIf
+              :EndIf
+              :If (⊂cb)∊chosen
+                  :For t :In ∊i._Type,i.nvCostType
+                      :If ~t∊1⊃lot
+                          ttype←APIdo('GetItemType't)
+                          posn←ttype.Title
+                          lot[1]←⊂t,1⊃lot
+                          fee+←ttype._SetupCost×1-0.1×EarlyBirdActive  ⍝ add setup cost
+                          gross+←ttype._SetupCost
+                          :If ~ttype._SuperType∊2⊃lot  ⍝ if we haven't dealt with that Supertype...
+                              posn←ttype.Title
+                              fee+←ttype._SuperSetup×1-0.1×EarlyBirdActive  ⍝ add SuperSetup cost
+                              gross+←ttype._SuperSetup
+                              lot[2]←⊂ttype._SuperType,2⊃lot
+                          :EndIf
+                          Invoice⍪←posn{(⊂⍺),(+/¯1↓⍵),(¯1↓⍵),+/¯3↑⍵}fee accomm spouse gross
+                          (fee accomm spouse pprc gross)←0 ⋄ posn←''
+                      :EndIf
+                  :EndFor
+                  posn,←(((0<⍴posn)∧'('≠¯1↑posn)/', '),i.Title ⋄ pprc+←i._Price ⋄ gross←i.Gross
+                  (fee accomm spouse)+←pprc,i._PriceAccommodation,(1+3⊃ATTENDANCE)⊃i.(0,_PriceSpouseDinner,_PriceSpouseAllMeals)
+              :EndIf
+          :EndIf
+     
+          :If ×≢posn
+              posn,←')'
+              Invoice⍪←(⊂posn),{(+/¯1↓⍵),(¯1↓⍵),+/¯3↑⍵}fee accomm spouse gross
+              (fee accomm spouse pprc gross)←0 ⋄ posn←''
+          :EndIf
+      :EndFor
+     
+      :If ×≢cct←↑(i_p⊃packs).ConditionalCostTypes   ⍝ if CCT are define for selecteed package
+      :AndIf ∨/z←cct[;2]∊∊lot                        ⍝ and we encounter a type that we haven't seen before
+      :AndIf ∨/z←z∧~cct[;1]∊∊lot                     ⍝ and its conditional type has not been used before
+   ⍝ then add it...
+          Invoice⍪←↑EarlyBirdActive{⍺{(⊂⍵.Title),⍺{(⍵×1-0.1×⍺),0 0 0,⍵}⍵._SetupCost}APIdo('GetItemType'(⍵[1]))}¨z/↓cct
+      :EndIf
+      ⍝⎕←'=== Invoice ===' ⋄ ⎕←Invoice
+     ShowSums:
+      :If 0<1↑⍴Invoice
+          (InvoiceAmount fee accomm spouse TotalGross)←+⌿1↓[2]Invoice
+          VAT_Amount←(VATpct[1]getvat fee)+VATpct[2]getvat accomm+spouse
+          ⍝⎕←'VAT_Amount=',VAT_Amount
+          R,←Execute'$("#total").val("',(#.Strings.deb CurrPrefix,' ',(7 2⍕InvoiceAmount),CurrSuffix),'");'
+      :Else
+          R,←Execute'$("#total").val("N/A");'
+          InvoiceAmount←0
+      :EndIf
+      R,←'#confgrid'Replace ctlTimetable.Render
+   
+     
+    ∇
+
+    ∇ R←Optimizer;i2p;item_ids;jb;info;choices;sum∆;isValid;z;cct
+      :Access public
+      (isValid R)←ValidateForm 0
+      →(~isValid)/0  ⍝ if form is not valid, do not even check!
+⍝      :If ~∨/'CUSTOM'⍷#.Strings.uc SelectedPackage.Title  ⍝ do not attempt to optimize non-custom selections!
+⍝          R,←Execute _JSS.Submit'#regform'
+⍝          →0
+⍝      :EndIf
+     
+               ⍝ optimization: check if package (potentially plus indiv. items) would be cheaper...
+      item_ids←∊TheItems.((Picked∨Included)/id)  ⍝ everything they got (handpicked or through package)
+      rt←ATTENDANCE[1]
+     
+      i2p←APIdo('Get' 'i2p')
+     
+      choices←0 3⍴'' ⍝ [;1]=price, [;2]=package.id [;3] additional MiServer-Controls to click
+      :For p :In (∨/¨packs.nvRoomTypes∊¨rt)/packs  ⍝ only compare packages for the same sharing
+          :If p._Price>0  ⍝ only test "real" packages with a price ;-)
+              z←i2p.id_package∊p.id
+              zi←(⊂TheItems.id)∊¨(item_ids)(z/i2p.id_item)   ⍝ (user's items)(items in current pack)
+              zt←(∊(⊃>/zi)/TheItems.(_Type,nvCostType)){(~⍺∊⍵)/⍺}∊(2⊃zi)/TheItems.(_Type,nvCostType)
+              sum∆←p._Price+(1+ATTENDANCE[3])⊃p.(0,_PriceSpouseDinner,_PriceSpouseAllMeals)  ⍝ price of package
+     
+              :If ×≢cct←↑p.ConditionalCostTypes   ⍝ if CCT are define for selecteed package
+              :AndIf ∨/z←cct[;2]∊∊zt                        ⍝ and we encounter a type that we haven't seen before
+              :AndIf ∨/z←z∧~cct[;1]∊∊zt                     ⍝ and its conditional type has not been used before
+                  ⍝ then add it...
+                  sum∆+←+/EarlyBirdActive{(APIdo('GetItemType'(⍵[1])))._SetupCost×1-0.1×⍺}¨z/↓cct
+              :EndIf
+     
+              sum∆←+/sum∆,(⊃>/zi)/TheItems.(_Price+_PriceAccommodation)+(1+ATTENDANCE[3])⊃¨TheItems.(0,_PriceSpouseDinner,_PriceSpouseAllMeals)   ⍝ plus prices of items not included in current package
+              :For t :In zt
+                  sum∆+←(APIdo'GetItemType't)._SetupCost
+              :EndFor
+              :If sum∆<InvoiceAmount
+                  choices⍪←sum∆ p.id(∊' ',¨(⊃>/zi)/TheItems.MiControl)
+              :EndIf
+          :EndIf
+      :EndFor
+      :If 0=≢choices ⋄ R←Execute _JSS.Submit'#regform' ⋄ →0 ⋄ :EndIf  ⍝ could not optimize...
+      sum∆←⌊/choices[;1]
+      choices←,(choices[;1]=sum∆)⌿choices
+          ⍝ prepare message AND js to adjust selections!
+⍝---
+      jb←New _.jBox'Confirm'  ⍝ set it up as an independent object
+     
+      jb.ScriptOptions←0 0 0 ⍝[1] Wrap in <script>? [2] wrap in $(function(){});? [3] use jQuery Selector syntax (1) or JavaScript new (0)
+      jb.Var←'jb'
+      jb.JavaScript←';jb.open();'
+     
+      ⍝ Text of the dialog
+      'title'jb.Set(GetText'OptimizerCaption')
+      info←GetText'OptimizerInfo'
+      info←info #.Strings.subst'%SumItems%'(#.Strings.deb CurrPrefix,' ',(7 2⍕InvoiceAmount),' ',CurrSuffix)
+      info←info #.Strings.subst'%SumOptimum%'(#.Strings.deb CurrPrefix,' ',(7 2⍕sum∆),' ',CurrSuffix)
+      'content'jb.Set info
+     
+      ⍝ Set the button texts
+      'confirmButton'jb.Set(GetText'OptimizerBtnYes')
+      'cancelButton'jb.Set(GetText'OptimizerBtnNo')
+     
+            ⍝ assign event-handlers to the two buttons
+      'confirm'jb.Set⊂'function(){ApplyOptimizersPick();$("form").submit();}'
+      'cancel'jb.Set⊂'function(){}'
+     
+      R,←Execute'$("[name=optpick_pack]").val("',(2⊃choices),'");'
+      R,←Execute'$("[name=optpick_items]").val("',(3⊃choices),'");'
+     
+⍝'autoclose'jb.Set _false
+⍝'closeOnEsc'jb.Set _false
+      R,←Execute(jb.Render)
+     
+     
+     
+⍝------
+⍝ Design:
+⍝ Optimize assigns a field "optimizedPackage"  with the id of the optimum package
+⍝ event_yes than calls a function which applies that package and submits again
+⍝ and cancel just cancels
+⍝-----
+    ∇
+
+
+
+    ∇ R←SubmitValidForm
+      :Access public
+⍝ separate fn for the callback, just in case we needto add anything before or after calling SDoubmitIfValid
+      R←Execute('$("#submitvia").val("',_what,'")')
+      R,←Optimizer      ⍝ ,SubmitIfValid  ⍝ is checked below in DoSubmitIfValid
+    ∇
+
+
+
+    ∇ (isValid R)←ValidateForm getPlainJS;cnt;z;type;fld;ValErr;js;psp
+    ⍝ getPlainJS=0: return JS-Code in Execute-Format (for AJAX-Results)
+    ⍝           =1: return unmodified string of JS-Code
+      js←R←'' ⋄ isValid←0
+      ValErr←0 2⍴⊂''    ⍝ colllects error-message during validation  [;1] Field in err   [;2]=msg
+      :For fld :In ('DelegateName' 'EMail' 'Town' 'Postcode' 'Address'  'Country'),(∊(({⍵,~∨/⍵}2 3=ATTENDANCE[1])/(1 0)(1 1)(0 0)))/'SecondName' 'SecondEmail'
+          :Trap 501
+              'required'getAndCheckField fld
+          :Else
+              ValErr⍪←JSValidation
+          :EndTrap
+      :EndFor
+      :Trap 501
+          'email'getAndCheckField'EMail'
+          :If ATTENDANCE[1]=3
+              'email'getAndCheckField'SecondEmail'
+          :EndIf
+      :Else
+          ValErr⍪←JSValidation
+      :EndTrap
+      :If ''≡Get'pckg_1' ⋄ ValErr⍪←'pckg_1' 'Please select Sharing Options & Package before submitting!'  ⍝ handling the "Vibs-Err"
+      :EndIf
+      :if   0=≢ Get'pSelPack' ⋄ ValErr⍪←'pSelPack' 'Please select a Package before submitting!'   
+      :EndIf
+      :If ~isUndefined'TheItems.Picked'
+      :andif 0=≢ValErr ⍝ only do further checks if we have found no errors yet
+     
+          :For fld :In TheItems.(0<Picked×≢NeedsOneOf)/TheItems  ⍝ check if items with subselections have a selected items
+              cnt←{∊⍺,≢⍵}⌸TheItems.(_Type,Picked)[TheItems.id⍳fld.NeedsOneOf]  ⍝ generate table with id-.type;Picked or Not;Count of elems
+              :For z :In ∪cnt[;1]                                              ⍝ for every type in this table
+                  :If ~∨/cnt∧.=z,1 1  ⍝ if we do not have a line where exactly one item of this group is selected...complain!
+                      type←APIdo'GetItemType'z
+                      ValErr⍪←('radiogroup',⍕z)('Please select one entry for ',type.Title)
+                  :EndIf
+              :EndFor
+          :EndFor
+     
+          pckId←1⊃#.Strings.tonum 1↓psp←Get'pSelPack' ⍝ scalar with id of selected package
+          i_p←packs.id⍳pckId
+          SelectedPackage←i_p⊃packs  ⍝ might be used in thankyou.html (and elsewhere!)
+          :For z :In (~SelectedPackage.nvNeedsMetaTypes∊∊TheItems.(Picked/nvMetaTypes))/SelectedPackage.nvNeedsMetaTypes
+              ValErr⍪←('.MetaType',⍕z)('Please select at least one option of "',((APIdo('GetItemType'z)).Title),'"')
+          :EndFor
+      :EndIf
+     
+      :If 0<≢ValErr                                            ⍝ if there are any validation-errors
+          R,←js2←{id←1⊃⍵ ⋄ id←((~(1↑id)∊'#.')/'#'),id ⋄ Execute'$("',id,'").addClass("valerr");'}¨↓ValErr
+          :If getPlainJS 
+          :trap 0
+           js,←∊2⊃¨js2 
+           :else ⍝ 1710711: 3 crashes on that statement! Will return a general msg and quit if this goes wrong again!
+           R←'alert("Please review your input!");' ⋄ isValid←0 ⋄ →0
+           :endtrap
+          :EndIf
+     
+          R,←js2←Execute(Notice 3(GetText'IValidationErrors'))
+          :If getPlainJS ⋄ js,←∊2⊃js2 ⋄ :EndIf
+     
+          R,←Execute js2←'#forminvalid'_JSS.Show''
+          :If getPlainJS ⋄ js,←js2 ⋄ :EndIf
+     
+          R,←'#forminvalid_content'Replace(New js2←#._.Ul(⊂ValErr[;2])).Render
+          :If getPlainJS ⋄ js,←'$("#forminvalid_content").val(',js2,');' ⋄ :EndIf
+     
+          R,←Execute(js2←'#forminvalid'_JSS.Show'')
+          :If getPlainJS ⋄ js,←js2 ⋄ :EndIf
+      :Else                                                           ⍝ no errors
+          R,←Execute(js2←'$(".valerr").removeClass("valerr");')            ⍝ no more validation errors left - remove class!
+          :If getPlainJS ⋄ js,←js2 ⋄ :EndIf
+     
+          R,←Execute'#forminvalid'_JSS.Hide''
+          :If getPlainJS ⋄ js,←js2 ⋄ :EndIf
+     
+          isValid←1
+      :EndIf
+      :If getPlainJS ⋄ js,←js2 ⋄ :EndIf
+      FormIsValid←isValid
+    ∇
+:endclass

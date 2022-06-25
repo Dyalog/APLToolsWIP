@@ -1,0 +1,27 @@
+:class thankyou : ConfPage
+
+    ∇ Compose
+      :Access public
+      :If 0=⎕NC⊂'_Request'
+      :OrIf 0=_Request.⎕NC⊂'Session'
+      :OrIf 0=_Request.Session.⎕NC⊂'RegData'
+          Add'Error: lost session data, cannot show Confirmation-Page, pls. check status of your booking with usermeeting@dyalog.com'
+      :Else
+          vv←_Request.Session.RegData
+          ⍎'(',(∊' ',¨1⊃vv),')←2⊃vv'  ⍝ assign variables and values as stored in RegData
+          :if _what≡'paynow'
+          :else   ⍝ pay later
+           
+          :endif
+
+          Add _.script ScriptFollows
+⍝history.pushState(null, null, document.URL);
+⍝window.addEventListener('popstate', function () {
+⍝    history.pushState(null, null, document.URL);
+⍝});
+     CountryLong←#.Countries.GetNameFromCode Country
+          Add(ExpandPlaceholders #.Files.GetText #.Boot.AppRoot,'\thankyou.html')
+      :EndIf
+    ∇
+
+:endclass

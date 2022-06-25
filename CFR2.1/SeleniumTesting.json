@@ -1,0 +1,16 @@
+﻿{
+ "_Comment": "an attempt to put all moving parts outside of the testscript...",
+ "_Author": "Michael Baas",
+ "DLLPATH":"h:\\Devt\\Selenium\\",
+ "SPATH":"h:\\GitHub\\Selenium\\",
+ "MiServerPath":"h:\\MiServer",
+ "HOMEDIR": "h:\\MyMiSites\\ConfRegTwo",
+ "HOMEDIR_Comment": "leave blank once 5177 or Adams SourceFile can be used to reliably get the source-file and then its directory...",
+ "PORT":8080,
+ "conf_id":2,
+ "conf_id_Comment": "the URL that is tested will be localhost:{PORT}/index?conf_id={conf_id}",
+ "TestFile": "TestData-2017.xlsx",
+ "TestFile_Comment": "Datasource for testing. Must be in {HOMEDIR} and might be a CSV or XLS. Note that XLS won't be useable under Linux!",
+ "type_confdays": 9,
+ "type_confdays_Comment": "Type of the conference days (in items-table)"
+ }

@@ -1,0 +1,78 @@
+﻿:class PaymentResponse : ConfPage
+
+    ∇ Compose;k;elems;z;vars;vals;sql;cart;nu
+      :Access public
+      title←'Dyalog Payment Response'
+      sql←'UPDATE Bookings SET TransactionId=:<C16:,AuthAmount=:<F:,AuthCurrency=:<C10:,Status=:<C2: WHERE TransactionId=:<C16:'
+      cart←Get'cartId'
+      TransactionId←transId←'WP',⍕Get'transId'
+      :Trap 0
+          :Hold 'Database'
+              c←SQLDo sql((⊂transId),(Get¨'authAmount' 'authCurrency'),(Get'transStatus')(4↓cart))
+          :EndHold
+     
+     
+          sql←'SELECT Status,YEarlyBird,YDays,YHotel,YBanquet,Name,Company,Address,Town,Region,Postcode,CountryCode,SecondName,SecondEmail'
+          sql,←',RoomType,SpouseMealPlan,Notes,Conference_VAT,Accommodation_VAT,InvoiceAmount,ConferenceGross,Accomodation,SpouseGross,SpouseNet'
+          sql,←',TotalGross,TotalNet,ConferenceNet,Courses,EMail,Conference_id'
+          sql,←' FROM Bookings WHERE TransactionId LIKE :<C16:'
+          :Hold 'Database'
+              c←SQLDo sql(transId)
+          :EndHold
+     
+     
+          vars←'Status,YEarlyBird,YDays,YHotel,YBanquet,DelegateName,Company,Address,Town,Region,Postcode,Country,SecondName,SecondEmail,'
+          vars,←'rtTxt,smpTxt,Notes,Conference_VAT,Accommodation_VAT,InvoiceAmount,ConferenceGross,Accommodation,SpouseGross,SpouseNet'
+          vars,←',TotalGross,TotalNet,ConferenceNet,Courses,EMail,Conference_id'
+     
+          ((vars=',')/vars)←' '
+          ⍎'(',vars,')←,c'
+     
+      ⍝ connect with API and retrieve variables required for thankyou-page
+          confs←APIdo('GetConfs' 1)
+          confIdx←confs.id⍳confId←Conference_id
+          TheItems←APIdo('Get' 'items')
+          packs←APIdo('Get' 'packages')
+          TheItems←(TheItems.id_conf=Conference_id)/TheItems   ⍝ pricing does not consider Early Bird etc. - but we're not concerned about that on thankyou.html
+          TheItems.Picked←TheItems.id∊#.Strings.tonum{w←⍵ ⋄ ((w=',')/w)←' ' ⋄ w}Get'MC_items'
+          VATpct←(confIdx⊃confs).(_VAT _AccommodationVAT)
+          (CurrPrefix CurrSuffix)←(confIdx⊃confs).(CurrPrefix CurrSuffix)
+          PaymentStatus←GetText'tyPaymntStat_',Status
+          SelectedPackage←(packs.id⍳0 Get'MC_pack')⊃packs
+          ItemsAndCategories←''
+          z←TheItems.Picked
+          ATTENDANCE←,({GetText'lRoomType',⍕⍵}¨⍳4)⍳⊂{(¯1+⍵⍳'/')↑⍵}rtTxt
+          :For (k elems) :In ↓(z/TheItems._Type){⍺ ⍵}⌸z/TheItems.id
+              ItemsAndCategories,←'<b>',(APIdo'GetItemType'k).Title,'</b><br>'
+              ItemsAndCategories,←TheItems[TheItems.id⍳elems].Title,¨⊂'<br>'
+          :EndFor
+     
+     
+     
+          iConfDays←{¯2↓∊⍵,¨⊂', '}APIdo('FormatDays'(Conference_id(YDays='Y')))
+          iHotelNights←{¯2↓∊⍵,¨⊂', '}APIdo('FormatDays'(Conference_id(YHotel='Y')))
+     
+     
+      ⍝ build return-page
+      ⍝_Request.Response.NoWrap←1
+          CountryLong←#.Countries.GetNameFromCode Country
+          Add(ExpandPlaceholders #.Files.GetText #.Boot.AppRoot,'\thankyou.html')
+      :Else
+          Add _.p'There was an error processing your payment through WorldPay – please check the status of your booking with usermeeting@dyalog.com'
+          Add _.p'Your cart-id: ',Get'cartId'
+          Add _.br
+          nu←(#.Boot.AppRoot,'DrA\cart_',(Get'cartId'),'_',' '~⍨⍕⎕TS)⎕FCREATE 0
+          errdata←1 2⍴'_PageData2JS'(0(7160⌶)_PageData)
+          errdata⍪←'⎕DM'(↑⎕DM)
+          :For a :In ⎕NL-2
+          :trap 0
+              xa←{ w←⍎⍵ ⋄ 326=⎕DR w:⍕w ⋄ w}a
+              errdata⍪←(a)(xa)
+              :endtrap
+          :EndFor
+          (↓[1]errdata)⎕FAPPEND nu
+          ⎕FUNTIE nu
+      :EndTrap
+    ∇
+
+:endclass

@@ -1,0 +1,120 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Conga 3.0 - Chat through sockets</title>
+	<script src="./jquery-3.2.1.min.js"></script>
+</head>
+<body>
+	<div style="display:block;">
+		<div id="chat1" style="border: solid 2px blue; width:49%; float:left;">
+
+		<label> Handle: </label>
+		<input id="_handle1" type="text" /> 
+		<label> Message: </label>
+		<input id="_message1" type="text" />
+		<button data-chat="1" onclick="sendMessage(1)"> Send </button>
+		<label style="margin-left: auto;" id="status1">Unconnected</label>
+			
+	</div>
+		<div id="chat2" style="border: solid 2px red; width:49%; float: right; ">
+
+		<label> Handle: </label>
+		<input id="_handle2" type="text" />
+		<label> Message: </label>
+		<input id="_message2" type="text" />
+		<button data-chat="2" onclick="sendMessage(2)"> Send </button>
+		<label style="margin-left: auto;" id="status2">Unconnected</label>
+
+	</div>
+	</div>
+	<div id="log" style="border: solid 2px green; width: 100%;float:left;">
+		<pre>This is the log-window...</pre>
+	</div>
+	<div id="output"  style="border: solid 2px purple; width: 100%;float:left;">
+		<p> Welcome to the ChatServer!</p>
+	</div>
+	
+	
+	
+	
+	
+	<script>
+		var wsuri;
+		var myws1;
+		var myws2;
+		if (document.location.origin == "file://") {
+			wsuri = "ws://127.0.0.1:8080";
+
+		} else {
+			wsuri = (document.location.protocol === "http:" ? "ws:" : "wss:") + "//" +
+					document.location.host;
+		}
+		
+		function ConnectSocket(no) {
+		var myws = new WebSocket(wsuri+"/chat"+no);
+		myws.onopen = onWebSocketOpen;
+		myws.onclose = onWebSocketClose;
+		myws.onmessage = onWebSocketMessage;
+		myws.onerror = onWebSocketError;
+		myws.id="sock"+no;
+		eval("myws"+no+"=myws;")
+	}
+	
+	ConnectSocket(1);
+	ConnectSocket(2);
+	
+		function onWebSocketOpen(evt) { 
+			console.log("onWebSocketOpen",evt);
+			var no=this.id.slice(-1);
+			console.info("this.id",this.id,no);
+			$("#log").append("onWebSocketOpen: "+no+"</br>");
+			updateStatus(no,"CONNECTED"); 
+		}  
+		
+		function onWebSocketClose(evt) {
+			$("#log").append("onWebSocketClose: "+no+"</br>");
+			var no=this.id.slice(-1);
+			updateStatus(no,"DISCONNECTED");
+		}
+
+		function onWebSocketMessage(evt) { 
+						var no=this.id.slice(-1);
+			$("#log").append("onWebSocketMessage: "+evt.data+" | sock" + no + "</br>");
+			var new_msg = JSON.parse(evt.data);
+			writeToScreen( new_msg );
+		}
+		
+		function onWebSocketError(evt) { 
+			var no=this.id.slice(-1);
+			updateStatus(no,'<span style="color: red;">ERROR:</span> ' + evt.data); 
+		}  
+		
+		function sendMessage(no){
+			var handle = document.getElementById("_handle"+no).value;
+			if (handle==""){
+				handle = "Anonymous";
+			}
+			var message = {
+				"text": document.getElementById("_message"+no).value,
+				"handle": handle
+			};		
+		 	eval("myws=myws"+no);
+			myws.send(JSON.stringify(message));
+		}
+
+		function writeToScreen(message) {
+			var msg = "<p>[" + message.date + "] " + message.handle + ": " + message.text + "</p>";
+			var out = document.getElementById("output");
+			out.innerHTML = msg + out.innerHTML;
+		}
+		
+		function updateStatus(no,message) {
+			console.info("updateStatus",no,message)
+			document.getElementById("status"+no).innerHTML=message;
+		}
+		
+		
+	</script>
+</body>
+</html>

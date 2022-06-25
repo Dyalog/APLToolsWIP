@@ -1,0 +1,19 @@
+<html>
+<head>
+<script src="/JQuery/jquery-1.12.3.min.js"></script>
+<script src="/chosen/chosen.jquery.min.js"></script>
+<link href="/chosen/chosen.min.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+	<div class="container">
+<div style="background-color: gray;height: 2em;width=100%;opacity: .9;">
+my select:<select id="foo" placeholder="Prompt"><option>first</option><option>second</option><option>third</option><option>fourth</option></select>
+<br />more text
+</div>
+</div>
+<br />
+<div style="background-color: blue;width=100%;opacity: .9;">
+footer
+</div>
+<script>$(function (){$("#foo").chosen();})</script>
+</body>
