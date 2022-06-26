@@ -302,8 +302,7 @@
       uid←(1+0∊⍴Userid)⊃Userid From
       →Exit if~0∊⍴msg←(0∊⍴uid)/'No Userid or From address specified'
       auth←' '(≠⊆⊢)8↓⊃auth
-⍝      →(auth∊'LOGIN' 'PLAIN')/LOGIN,PLAIN
-      →(<\'LOGIN' 'PLAIN'∊auth)/LOGIN,PLAIN
+      →('LOGIN' 'PLAIN'∊auth)/LOGIN,PLAIN
       →Exit⊣msg←'Only AUTH LOGIN or AUTH PLAIN are currently supported'
      LOGIN:
       →Exit if 0≠⊃(rc msg)←Do'AUTH LOGIN'
