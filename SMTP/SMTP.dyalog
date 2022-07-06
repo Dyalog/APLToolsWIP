@@ -731,6 +731,10 @@
         ∇ rc←now;time;day;mon;s;x;LOCTIME;TIMEZONE;isUnicode;twid
           :Access public shared
         ⍝ returns an internet-conforming (RFC 2822) timestamp
+        ⍝ ie "Wed, 06 Jul 2022 13:01:34 +0200 (GMT)"
+          rc←⊃(,'Ddd, DD Mmm YYYY hh:mm:ss ',{((1+¯1=×⊃,⍵)⊃'+-'),,'ZI2,ZI2'⎕FMT 1 2⍴24 60 60⊤|⍵}-/20 ⎕DT'JZ')(1200⌶)1 ⎕DT⊂⎕TS
+          →0
+
           :If 'Win'≡3↑⊃'.'⎕WG'APLVersion'
               isUnicode←80=⎕DR'A'
               twid←64 32[1+isUnicode] ⍝ set width for text elements based on unicode or not
